@@ -64,13 +64,14 @@ export const apiService = {
         }));
     },
 
-    async registerUser(user: Omit<User, 'id' | 'isApproved' | 'createdAt' | 'updatedAt'>): Promise<void> {
-        const payload = {
-            ...user,
+    async registerUser(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+        const { isApproved, ...rest } = user;
+        const payload: User = {
             id: crypto.randomUUID(),
-            isApproved: false,
+            isApproved: isApproved ?? false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+            ...rest,
         };
 
         const response = await fetch(`${API_URL}?sheet=Users`, {

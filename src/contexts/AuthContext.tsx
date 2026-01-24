@@ -50,12 +50,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(true);
         try {
             const existingUsers = await apiService.fetchUsers();
-            const role = existingUsers.length === 0 ? 'admin' : 'user';
+            const isFirstUser = existingUsers.length === 0;
+            const role = isFirstUser ? 'admin' : 'user';
+            const isApproved = isFirstUser;
 
             await apiService.registerUser({
                 username,
                 email,
-                role
+                role,
+                isApproved
             });
         } finally {
             setIsLoading(false);
