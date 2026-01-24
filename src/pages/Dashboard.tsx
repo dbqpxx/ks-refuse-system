@@ -17,10 +17,9 @@ export default function DashboardPage() {
         incinerationTrend: number | null;
         pitStorageTrend: number | null;
     } | null>(null);
-    const [selectedDate, setSelectedDate] = useState<string>(
-        new Date().toISOString().split('T')[0]
-    );
+    const [selectedDate, setSelectedDate] = useState<string>('');
     const [loading, setLoading] = useState(true);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
 
     useEffect(() => {
         loadDashboardData();
@@ -31,15 +30,23 @@ export default function DashboardPage() {
         try {
             const allData = await apiService.fetchPlantData();
 
-            // We need to process the raw data to get summaries
-            // For now, let's just implement a simple clientside processing helper or replicate logic
-            // Since storageService has all the logic, we should probably update storageService 
-            // to work with in-memory data or just calculate it here.
-            // BETTER APPROACH: Let's fetch data and then feed it into a temporary storageService instance 
-            // OR refrain from using storageService completely for these calculations.
+            if (allData.length === 0) {
+                setLoading(false);
+                setIsInitialLoad(false);
+                return;
+            }
 
-            // To save time and complexity, let's keep logic simple:
-            const dayData = allData.filter(d => d.date === selectedDate);
+            // If initial load and no date selected, find the latest date with data
+            let dateToLoad = selectedDate;
+            if (isInitialLoad && !selectedDate) {
+                const dates = allData.map(d => d.date).sort().reverse();
+                dateToLoad = dates[0];
+                setSelectedDate(dateToLoad);
+                // The useEffect will trigger again, so we can return early or continue
+                // To avoid multiple loads, let's just proceed with dateToLoad
+            }
+
+            const dayData = allData.filter(d => d.date === dateToLoad);
 
             // Calculate Daily Summary
             const totalIntake = dayData.reduce((sum, r) => sum + r.totalIntake, 0);
@@ -54,7 +61,7 @@ export default function DashboardPage() {
             }));
 
             setSummary({
-                date: selectedDate,
+                date: dateToLoad,
                 totalIntake,
                 totalIncineration,
                 furnacesRunning,
@@ -63,7 +70,6 @@ export default function DashboardPage() {
             });
 
             // Trend Data (Last 7 days)
-            // We need unique dates from allData, sorted desc
             const uniqueDates = [...new Set(allData.map(d => d.date))].sort().reverse().slice(0, 7).reverse();
             const trend = uniqueDates.map(date => {
                 const dData = allData.filter(d => d.date === date);
@@ -75,18 +81,24 @@ export default function DashboardPage() {
                         totalIncineration: dData.reduce((sum, r) => sum + r.incinerationAmount, 0),
                         furnacesRunning: dData.reduce((sum, r) => sum + r.furnaceCount, 0),
                         furnacesStopped: 0,
-                        plants: []
+                        plants: dData.map(r => ({
+                            plantName: r.plantName,
+                            totalIntake: r.totalIntake,
+                            incinerationAmount: r.incinerationAmount,
+                            pitStoragePercentage: r.pitCapacity ? (r.pitStorage / r.pitCapacity) * 100 : 0,
+                            furnaceCount: r.furnaceCount
+                        }))
                     }
                 };
             });
             setTrendData(trend);
 
             // Day over Day Trend
-            // Need previous day data
-            const prevDate = new Date(selectedDate);
-            prevDate.setDate(prevDate.getDate() - 1);
-            const prevDateStr = prevDate.toISOString().split('T')[0];
-            const prevData = allData.filter(d => d.date === prevDateStr);
+            const sortedDates = [...new Set(allData.map(d => d.date))].sort();
+            const currentIndex = sortedDates.indexOf(dateToLoad);
+            const prevDateStr = currentIndex > 0 ? sortedDates[currentIndex - 1] : null;
+
+            const prevData = prevDateStr ? allData.filter(d => d.date === prevDateStr) : [];
 
             const prevIntake = prevData.reduce((sum, r) => sum + r.totalIntake, 0);
             const prevIncineration = prevData.reduce((sum, r) => sum + r.incinerationAmount, 0);
@@ -107,6 +119,7 @@ export default function DashboardPage() {
             console.error('Error loading dashboard data:', error);
         } finally {
             setLoading(false);
+            setIsInitialLoad(false);
         }
     };
 
