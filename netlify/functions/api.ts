@@ -101,11 +101,13 @@ export const handler: Handler = async (event, context) => {
                 }
 
                 const headers = rows[0];
-                // If headers don't match, return empty to be safe or try to map
                 const data = rows.slice(1).map((row) => {
                     const obj: any = {};
-                    headers.forEach((header, index) => {
-                        if (header) obj[header] = row[index];
+                    currentSchema.forEach((key, index) => {
+                        // Use header-based mapping if header exists for this index
+                        // Otherwise fallback to schema name at this index
+                        const fieldName = (headers[index] && headers[index] === key) ? key : key;
+                        obj[fieldName] = row[index] !== undefined ? row[index] : '';
                     });
                     return obj;
                 });

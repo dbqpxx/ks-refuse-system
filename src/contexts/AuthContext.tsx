@@ -27,11 +27,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (username: string, password: string) => {
         setIsLoading(true);
+        console.log(`[Auth] Attempting login for: ${username}`);
         try {
             const users = await apiService.fetchUsers();
-            const foundUser = users.find(u => u.username === username && u.password === password);
+            console.log(`[Auth] Fetched ${users.length} users`);
+
+            const foundUser = users.find(u =>
+                String(u.username || "").trim() === String(username || "").trim() &&
+                String(u.password || "").trim() === String(password || "").trim()
+            );
 
             if (!foundUser) {
+                console.warn(`[Auth] User not found or password mismatch for: ${username}`);
+                // Debug: list available usernames (be careful with PII, but this is for debugging internal system)
+                console.debug(`[Auth] Available usernames:`, users.map(u => u.username));
                 throw new Error('帳號或密碼錯誤');
             }
 
@@ -40,11 +49,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const isFirstAdminRescue = users.length === 1 && foundUser.role === 'admin';
 
             if (!foundUser.isApproved && !isFirstAdminRescue) {
+                console.warn(`[Auth] User found but not approved: ${username}`);
                 throw new Error('您的帳號尚未通過管理員許可，請稍後再試');
             }
 
+            console.log(`[Auth] Login successful: ${username}`);
             setUser(foundUser);
             localStorage.setItem('auth_user', JSON.stringify(foundUser));
+        } catch (error) {
+            console.error(`[Auth] Login error:`, error);
+            throw error;
         } finally {
             setIsLoading(false);
         }
