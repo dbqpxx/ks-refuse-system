@@ -1,6 +1,6 @@
 import { Handler } from '@netlify/functions';
 import { google } from 'googleapis';
-import userCredentials from '../../.env'; // This might cause issues if not handled by bundler correctly, usually process.env is enough in Netlify functions
+// import userCredentials from '../../.env'; // Removed to prevent build error
 import * as dotenv from 'dotenv';
 dotenv.config();
 
