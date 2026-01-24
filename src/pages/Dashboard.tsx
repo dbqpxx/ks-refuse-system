@@ -7,7 +7,7 @@ import PitStorageChart from '@/components/PitStorageChart';
 import PlantStatusCard from '@/components/PlantStatusCard';
 import TrendChart from '@/components/TrendChart';
 import { apiService } from '@/services/api';
-import { PLANTS, type DailySummary, type Plant } from '@/types';
+import { PLANTS, type DailySummary } from '@/types';
 
 export default function DashboardPage() {
     const [summary, setSummary] = useState<DailySummary | null>(null);

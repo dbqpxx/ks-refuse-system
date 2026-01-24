@@ -1,4 +1,4 @@
-import type { PlantData, DataFilter, RangeStatistics, DailySummary, PlantSummary } from '@/types';
+import { PLANTS, type PlantData, type DataFilter, type RangeStatistics, type DailySummary, type PlantSummary } from '@/types';
 
 const STORAGE_KEY = 'ks_refuse_data';
 
@@ -266,13 +266,19 @@ class StorageService {
         const totalFurnaces = dayData.length * 3; // Assuming average of 3 furnaces per plant
         const furnacesStopped = Math.max(0, totalFurnaces - furnacesRunning);
 
-        const plants: PlantSummary[] = dayData.map(record => ({
-            plantName: record.plantName,
-            totalIntake: record.totalIntake,
-            incinerationAmount: record.incinerationAmount,
-            pitStoragePercentage: (record.pitStorage / record.pitCapacity) * 100,
-            furnaceCount: record.furnaceCount,
-        }));
+        const plants: PlantSummary[] = dayData.map(record => {
+            const plantConfig = PLANTS.find(p => p.name === record.plantName);
+            return {
+                plantName: record.plantName,
+                totalIntake: record.totalIntake,
+                incinerationAmount: record.incinerationAmount,
+                pitStoragePercentage: record.pitCapacity ? (record.pitStorage / record.pitCapacity) * 100 : 0,
+                pitStorage: record.pitStorage,
+                pitCapacity: record.pitCapacity,
+                furnaceCount: record.furnaceCount,
+                maxFurnaces: plantConfig?.maxFurnaces || 3
+            };
+        });
 
         return {
             date,
