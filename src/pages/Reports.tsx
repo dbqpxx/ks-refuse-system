@@ -526,7 +526,6 @@ export default function ReportsPage() {
                                                     tick={{ fontSize: 11 }}
                                                     tickLine={false}
                                                     axisLine={{ stroke: '#374151' }}
-                                                    label={{ value: '總量', angle: 90, position: 'insideRight', fontSize: 11 }}
                                                 />
                                                 <Tooltip
                                                     contentStyle={{
@@ -600,7 +599,6 @@ export default function ReportsPage() {
                                                     tick={{ fontSize: 11 }}
                                                     tickLine={false}
                                                     axisLine={{ stroke: '#374151' }}
-                                                    label={{ value: '總量', angle: 90, position: 'insideRight', fontSize: 11 }}
                                                 />
                                                 <Tooltip
                                                     contentStyle={{
@@ -728,7 +726,7 @@ export default function ReportsPage() {
                                                     tick={{ fontSize: 11 }}
                                                     tickLine={false}
                                                     axisLine={{ stroke: '#e5e7eb' }}
-                                                    domain={[0, 460]}
+                                                    domain={[0, 500]}
                                                     label={{ value: '噸/爐', angle: -90, position: 'insideLeft', fontSize: 11 }}
                                                 />
                                                 <Tooltip
@@ -800,16 +798,7 @@ export default function ReportsPage() {
                                                     axisLine={{ stroke: '#e5e7eb' }}
                                                     label={{ value: '累積量（噸）', angle: -90, position: 'insideLeft', fontSize: 10 }}
                                                 />
-                                                <YAxis
-                                                    yAxisId="right"
-                                                    orientation="right"
-                                                    tick={{ fontSize: 11 }}
-                                                    tickLine={false}
-                                                    axisLine={{ stroke: '#f59e0b' }}
-                                                    domain={[0, 150]}
-                                                    tickFormatter={(value) => `${value}%`}
-                                                    label={{ value: '佔比%', angle: 90, position: 'insideRight', fontSize: 10 }}
-                                                />
+                                                {/* Right YAxis removed to increase width */}
                                                 <Tooltip
                                                     contentStyle={{
                                                         backgroundColor: 'white',
@@ -843,7 +832,7 @@ export default function ReportsPage() {
                                                 <Line
                                                     type="monotone"
                                                     dataKey="平均貯坑佔比"
-                                                    yAxisId="right"
+                                                    yAxisId="left"
                                                     stroke="#f59e0b"
                                                     strokeWidth={2}
                                                     strokeDasharray="5 5"
