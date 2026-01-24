@@ -47,11 +47,9 @@ export const handler: Handler = async (event, context) => {
 
         // Handle GET request (Fetch data)
         if (event.httpMethod === 'GET') {
-            // Assume the first sheet contains the data, or specify range like 'Sheet1!A:Z'
-            // We'll read the entire first sheet
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId,
-                range: 'A:M', // Adjust range to cover enough columns
+                range: 'A:M',
             });
 
             const rows = response.data.values;
@@ -64,11 +62,26 @@ export const handler: Handler = async (event, context) => {
 
             // Transform rows to objects based on headers
             const headers = rows[0];
+            // Basic validation: Check if headers look like our expected schema keys
+            // If the first row looks like data (e.g. starts with a date), we might have missing headers
+            const hasHeaders = headers.includes('plantName') && headers.includes('totalIntake');
+
+            if (!hasHeaders) {
+                // If no headers found but data exists, this is tricky. 
+                // We'll return empty or try to map by index if strict schema is enforced.
+                // For safety, let's just return empty but log it, or return raw data if useful.
+                // Better approach: Let the client handle it or just return empty to avoid crashes.
+                console.warn('No valid headers found in sheet');
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ data: [] }),
+                };
+            }
+
             const data = rows.slice(1).map((row) => {
                 const obj: any = {};
                 headers.forEach((header, index) => {
-                    // Normalize header keys if necessary
-                    obj[header] = row[index];
+                    if (header) obj[header] = row[index];
                 });
                 return obj;
             });
@@ -89,14 +102,6 @@ export const handler: Handler = async (event, context) => {
             }
 
             const payload = JSON.parse(event.body);
-            // Payload should be an array of objects matching the schema
-
-            // Prepare row data based on our known structure
-            // We need to ensure the order matches the headers or append consistently
-            // For simplicity, let's assume we append to the end and matching columns
-
-            // First, get current headers to map correctly, or define a strict schema
-            // Strict Schema approach is safer to ensure column order
             const schema = [
                 'id',
                 'date',
@@ -113,23 +118,26 @@ export const handler: Handler = async (event, context) => {
                 'updatedAt'
             ];
 
-            // If headers don't exist, we might need to write them first. 
-            // Logic: Check if sheet is empty. If so, write headers.
+            // Check if sheet is empty to write headers
+            const checkResponse = await sheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: 'A1:A1',
+            });
+            const isSheetEmpty = !checkResponse.data.values || checkResponse.data.values.length === 0;
 
-            // For now, let's just accept the raw values array from client to simplify backend logic
-            // data: [ [val1, val2...], [val1, val2...] ]
-            // OR client sends object and we map it here.
-
-            // Let's implement Mapping here for robustness
             const rowsToAdd = Array.isArray(payload) ? payload : [payload];
-
             const values = rowsToAdd.map((item: any) => {
                 return schema.map(key => item[key] ?? '');
             });
 
+            if (isSheetEmpty) {
+                // Prepend headers to the values
+                values.unshift(schema);
+            }
+
             await sheets.spreadsheets.values.append({
                 spreadsheetId,
-                range: 'A1', // Append automatically finds the next empty row
+                range: 'A1',
                 valueInputOption: 'USER_ENTERED',
                 requestBody: {
                     values: values,

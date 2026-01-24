@@ -27,7 +27,11 @@ export const apiService = {
             actualIntake: item.actualIntake ? Number(item.actualIntake) : undefined,
             overReservedTrips: item.overReservedTrips ? Number(item.overReservedTrips) : undefined,
             adjustedTrips: item.adjustedTrips ? Number(item.adjustedTrips) : undefined,
-        }));
+        })).filter((item: PlantData) =>
+            !isNaN(item.totalIntake) &&
+            !isNaN(item.incinerationAmount) &&
+            !isNaN(item.furnaceCount)
+        );
     },
 
     /**
