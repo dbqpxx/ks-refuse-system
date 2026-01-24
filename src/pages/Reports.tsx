@@ -505,7 +505,7 @@ export default function ReportsPage() {
                                 {intakeChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <ComposedChart data={intakeChartData} margin={{ top: 10, right: 0, left: -35, bottom: 0 }}>
+                                            <ComposedChart data={intakeChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -578,7 +578,7 @@ export default function ReportsPage() {
                                 {incinerationChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <ComposedChart data={incinerationChartData} margin={{ top: 10, right: 0, left: -35, bottom: 0 }}>
+                                            <ComposedChart data={incinerationChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -651,7 +651,7 @@ export default function ReportsPage() {
                                 {pitStorageChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={pitStorageChartData} margin={{ top: 10, right: 0, left: -35, bottom: 0 }}>
+                                            <LineChart data={pitStorageChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -714,7 +714,7 @@ export default function ReportsPage() {
                                 {perFurnaceChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={perFurnaceChartData} margin={{ top: 10, right: 0, left: -35, bottom: 0 }}>
+                                            <BarChart data={perFurnaceChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -783,7 +783,7 @@ export default function ReportsPage() {
                                 {cumulativeChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <ComposedChart data={cumulativeChartData} margin={{ top: 10, right: 0, left: -35, bottom: 0 }}>
+                                            <ComposedChart data={cumulativeChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
