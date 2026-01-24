@@ -12,6 +12,7 @@ export default function LoginPage() {
     const [isRegister, setIsRegister] = useState(false);
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const { login, register, isLoading } = useAuth();
@@ -22,18 +23,31 @@ export default function LoginPage() {
         setError("");
         setSuccess("");
 
-        if (!username || !email) {
-            setError("請填寫所有欄位");
-            return;
+        // Validation
+        if (isRegister) {
+            if (!username || !email || !password) {
+                setError("請填寫所有欄位");
+                return;
+            }
+            if (password.length < 6) {
+                setError("密碼長度至少需要 6 個字元");
+                return;
+            }
+        } else {
+            if (!username || !password) {
+                setError("請填寫帳號和密碼");
+                return;
+            }
         }
 
         try {
             if (isRegister) {
-                await register(username, email);
+                await register(username, email, password);
                 setSuccess("註冊成功！請聯繫管理員進行帳號許可。");
                 setIsRegister(false);
+                setPassword("");
             } else {
-                await login(username, email);
+                await login(username, password);
                 navigate("/");
             }
         } catch (err: any) {
@@ -73,14 +87,27 @@ export default function LoginPage() {
                                 disabled={isLoading}
                             />
                         </div>
+                        {isRegister && (
+                            <div className="space-y-2">
+                                <Label htmlFor="email">電子郵件</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    placeholder="example@gmail.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    disabled={isLoading}
+                                />
+                            </div>
+                        )}
                         <div className="space-y-2">
-                            <Label htmlFor="email">電子郵件</Label>
+                            <Label htmlFor="password">密碼</Label>
                             <Input
-                                id="email"
-                                type="email"
-                                placeholder="example@gmail.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                id="password"
+                                type="password"
+                                placeholder={isRegister ? "至少 6 個字元" : "請輸入密碼"}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 disabled={isLoading}
                             />
                         </div>

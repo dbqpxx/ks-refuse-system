@@ -6,6 +6,7 @@ export interface User {
     id: string;
     username: string; // "代號" (Account ID)
     email: string;
+    password: string; // User password for authentication
     role: UserRole;
     isApproved: boolean;
     createdAt: string;

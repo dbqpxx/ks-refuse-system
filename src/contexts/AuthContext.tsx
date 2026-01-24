@@ -4,8 +4,8 @@ import { apiService } from '@/services/api';
 
 interface AuthContextType {
     user: User | null;
-    login: (username: string, email: string) => Promise<void>;
-    register: (username: string, email: string) => Promise<void>;
+    login: (username: string, password: string) => Promise<void>;
+    register: (username: string, email: string, password: string) => Promise<void>;
     logout: () => void;
     isLoading: boolean;
     isAdmin: boolean;
@@ -25,14 +25,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
     }, []);
 
-    const login = async (username: string, email: string) => {
+    const login = async (username: string, password: string) => {
         setIsLoading(true);
         try {
             const users = await apiService.fetchUsers();
-            const foundUser = users.find(u => u.username === username && u.email === email);
+            const foundUser = users.find(u => u.username === username && u.password === password);
 
             if (!foundUser) {
-                throw new Error('帳號或電子郵件錯誤');
+                throw new Error('帳號或密碼錯誤');
             }
 
             // Rescue Logic: If this is the ONLY user and they are an admin, allow login regardless of isApproved
@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const register = async (username: string, email: string) => {
+    const register = async (username: string, email: string, password: string) => {
         setIsLoading(true);
         try {
             const existingUsers = await apiService.fetchUsers();
@@ -61,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await apiService.registerUser({
                 username,
                 email,
+                password,
                 role,
                 isApproved
             });

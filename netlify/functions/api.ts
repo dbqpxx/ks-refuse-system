@@ -78,7 +78,7 @@ export const handler: Handler = async (event, context) => {
                 'adjustedTrips', 'updatedAt', 'createdAt'
             ],
             'Users': [
-                'id', 'username', 'email', 'role', 'isApproved', 'createdAt', 'updatedAt'
+                'id', 'username', 'email', 'password', 'role', 'isApproved', 'createdAt', 'updatedAt'
             ]
         };
 
