@@ -1,4 +1,4 @@
-import type { PlantData } from '@/types';
+import type { PlantData, User } from '@/types';
 
 // Use relative URL which will be proxied by Netlify (dev and prod)
 const API_URL = '/api';
@@ -8,31 +8,24 @@ export const apiService = {
      * Fetch all plant data from the Google Sheet
      */
     async fetchPlantData(): Promise<PlantData[]> {
-        const response = await fetch(API_URL);
+        const response = await fetch(`${API_URL}?sheet=Data`);
         if (!response.ok) {
             throw new Error(`Failed to fetch data: ${response.statusText}`);
         }
         const json = await response.json();
 
-        // Transform data types (everything from Sheets is a string/number)
-        // We need to ensure numbers are actually numbers
         return (json.data || []).map((item: any) => ({
             ...item,
-            // Helper to parse numbers safely (handles "1,234" strings)
-            furnaceCount: typeof item.furnaceCount === 'string' ? Number(item.furnaceCount.replace(/,/g, '')) : Number(item.furnaceCount),
-            totalIntake: typeof item.totalIntake === 'string' ? Number(item.totalIntake.replace(/,/g, '')) : Number(item.totalIntake),
-            incinerationAmount: typeof item.incinerationAmount === 'string' ? Number(item.incinerationAmount.replace(/,/g, '')) : Number(item.incinerationAmount),
-            pitStorage: typeof item.pitStorage === 'string' ? Number(item.pitStorage.replace(/,/g, '')) : Number(item.pitStorage),
-            pitCapacity: typeof item.pitCapacity === 'string' ? Number(item.pitCapacity.replace(/,/g, '')) : Number(item.pitCapacity),
-            platformReserved: item.platformReserved ? (typeof item.platformReserved === 'string' ? Number(item.platformReserved.replace(/,/g, '')) : Number(item.platformReserved)) : undefined,
-            actualIntake: item.actualIntake ? (typeof item.actualIntake === 'string' ? Number(item.actualIntake.replace(/,/g, '')) : Number(item.actualIntake)) : undefined,
-            overReservedTrips: item.overReservedTrips ? (typeof item.overReservedTrips === 'string' ? Number(item.overReservedTrips.replace(/,/g, '')) : Number(item.overReservedTrips)) : undefined,
-            adjustedTrips: item.adjustedTrips ? (typeof item.adjustedTrips === 'string' ? Number(item.adjustedTrips.replace(/,/g, '')) : Number(item.adjustedTrips)) : undefined,
-        })).filter((item: PlantData) =>
-            !isNaN(item.totalIntake) &&
-            !isNaN(item.incinerationAmount) &&
-            !isNaN(item.furnaceCount)
-        );
+            furnaceCount: Number(item.furnaceCount || 0),
+            totalIntake: Number(item.totalIntake || 0),
+            incinerationAmount: Number(item.incinerationAmount || 0),
+            pitStorage: Number(item.pitStorage || 0),
+            pitCapacity: Number(item.pitCapacity || 0),
+            platformReserved: item.platformReserved ? Number(item.platformReserved) : undefined,
+            actualIntake: item.actualIntake ? Number(item.actualIntake) : undefined,
+            overReservedTrips: item.overReservedTrips ? Number(item.overReservedTrips) : undefined,
+            adjustedTrips: item.adjustedTrips ? Number(item.adjustedTrips) : undefined,
+        }));
     },
 
     /**
@@ -40,25 +33,60 @@ export const apiService = {
      */
     async savePlantData(data: Omit<PlantData, 'id' | 'createdAt' | 'updatedAt'> | Omit<PlantData, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<void> {
         const inputList = Array.isArray(data) ? data : [data];
-
-        // Auto-generate ID and timestamps
-        const payload: PlantData[] = inputList.map(item => ({
+        const payload = inputList.map(item => ({
             ...item,
             id: crypto.randomUUID(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-        } as PlantData));
+        }));
 
-        const response = await fetch(API_URL, {
+        const response = await fetch(`${API_URL}?sheet=Data`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
             throw new Error(`Failed to save data: ${response.statusText}`);
         }
+    },
+
+    /**
+     * Users Management
+     */
+    async fetchUsers(): Promise<User[]> {
+        const response = await fetch(`${API_URL}?sheet=Users`);
+        if (!response.ok) throw new Error('Failed to fetch users');
+        const json = await response.json();
+        return (json.data || []).map((u: any) => ({
+            ...u,
+            isApproved: u.isApproved === 'true' || u.isApproved === true
+        }));
+    },
+
+    async registerUser(user: Omit<User, 'id' | 'isApproved' | 'createdAt' | 'updatedAt'>): Promise<void> {
+        const payload = {
+            ...user,
+            id: crypto.randomUUID(),
+            isApproved: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+
+        const response = await fetch(`${API_URL}?sheet=Users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (!response.ok) throw new Error('Failed to register user');
+    },
+
+    async updateUser(user: User): Promise<void> {
+        const response = await fetch(`${API_URL}?sheet=Users&method=PUT`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...user, updatedAt: new Date().toISOString() }),
+        });
+        if (!response.ok) throw new Error('Failed to update user');
     }
 };

@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
     LayoutDashboard,
@@ -8,20 +8,33 @@ import {
     Users,
     Database,
     LogOut,
+    User as UserIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
-    { href: "/", label: "總覽", icon: LayoutDashboard },
-    { href: "/input", label: "數據輸入", icon: PenTool },
-    { href: "/report", label: "報表查詢", icon: BarChart3 },
-    { href: "/settings", label: "設定", icon: Settings },
-    { href: "/users", label: "用戶管理", icon: Users },
-    { href: "/data", label: "資料管理", icon: Database },
+    { href: "/", label: "總覽", icon: LayoutDashboard, roles: ['admin', 'user'] },
+    { href: "/input", label: "數據輸入", icon: PenTool, roles: ['admin'] },
+    { href: "/report", label: "報表查詢", icon: BarChart3, roles: ['admin', 'user'] },
+    { href: "/settings", label: "設定", icon: Settings, roles: ['admin'] },
+    { href: "/users", label: "用戶管理", icon: Users, roles: ['admin'] },
+    { href: "/data", label: "資料管理", icon: Database, roles: ['admin'] },
 ];
 
 export default function AppLayout() {
     const location = useLocation();
+    const navigate = useNavigate();
+    const { user, logout } = useAuth();
+
+    const filteredNavItems = navItems.filter(item =>
+        !item.roles || (user && item.roles.includes(user.role))
+    );
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     return (
         <div className="min-h-screen bg-secondary/30">
@@ -33,7 +46,7 @@ export default function AppLayout() {
                             <span className="md:hidden">焚化廠系統</span>
                         </Link>
                         <nav className="hidden md:flex items-center gap-1">
-                            {navItems.map((item) => {
+                            {filteredNavItems.map((item) => {
                                 const Icon = item.icon;
                                 const isActive = location.pathname === item.href;
                                 return (
@@ -54,8 +67,12 @@ export default function AppLayout() {
                             })}
                         </nav>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" className="gap-2">
+                    <div className="flex items-center gap-4">
+                        <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+                            <UserIcon className="h-4 w-4" />
+                            <span>{user?.username} ({user?.role === 'admin' ? '管理者' : '使用者'})</span>
+                        </div>
+                        <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
                             <LogOut className="h-4 w-4" />
                             <span className="hidden sm:inline">登出</span>
                         </Button>
@@ -64,7 +81,7 @@ export default function AppLayout() {
                 {/* Mobile Nav */}
                 <div className="md:hidden border-t overflow-x-auto">
                     <nav className="flex items-center p-2 gap-2 min-w-max">
-                        {navItems.map((item) => {
+                        {filteredNavItems.map((item) => {
                             const Icon = item.icon;
                             const isActive = location.pathname === item.href;
                             return (

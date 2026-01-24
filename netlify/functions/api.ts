@@ -34,6 +34,8 @@ async function getSheetsInstance() {
 
 export const handler: Handler = async (event, context) => {
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+    const searchParams = new URLSearchParams(event.queryStringParameters as any);
+    const sheetName = searchParams.get('sheet') || 'Data'; // 'Data' or 'Users'
 
     if (!spreadsheetId) {
         return {
@@ -45,11 +47,26 @@ export const handler: Handler = async (event, context) => {
     try {
         const sheets = await getSheetsInstance();
 
+        // Schema mapping for different sheets
+        const schemas: Record<string, string[]> = {
+            'Data': [
+                'id', 'date', 'plantName', 'furnaceCount', 'totalIntake',
+                'incinerationAmount', 'pitStorage', 'pitCapacity',
+                'platformReserved', 'actualIntake', 'overReservedTrips',
+                'adjustedTrips', 'updatedAt', 'createdAt'
+            ],
+            'Users': [
+                'id', 'username', 'email', 'role', 'isApproved', 'createdAt', 'updatedAt'
+            ]
+        };
+
+        const currentSchema = schemas[sheetName] || schemas['Data'];
+
         // Handle GET request (Fetch data)
         if (event.httpMethod === 'GET') {
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId,
-                range: 'A:M',
+                range: `${sheetName}!A:O`, // Extended range to be safe
             });
 
             const rows = response.data.values;
@@ -60,24 +77,8 @@ export const handler: Handler = async (event, context) => {
                 };
             }
 
-            // Transform rows to objects based on headers
             const headers = rows[0];
-            // Basic validation: Check if headers look like our expected schema keys
-            // If the first row looks like data (e.g. starts with a date), we might have missing headers
-            const hasHeaders = headers.includes('plantName') && headers.includes('totalIntake');
-
-            if (!hasHeaders) {
-                // If no headers found but data exists, this is tricky. 
-                // We'll return empty or try to map by index if strict schema is enforced.
-                // For safety, let's just return empty but log it, or return raw data if useful.
-                // Better approach: Let the client handle it or just return empty to avoid crashes.
-                console.warn('No valid headers found in sheet');
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({ data: [] }),
-                };
-            }
-
+            // If headers don't match, return empty to be safe or try to map
             const data = rows.slice(1).map((row) => {
                 const obj: any = {};
                 headers.forEach((header, index) => {
@@ -88,56 +89,88 @@ export const handler: Handler = async (event, context) => {
 
             return {
                 statusCode: 200,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ data }),
             };
         }
 
-        // Handle POST request (Add data)
+        // Handle POST request (Add/Update data)
         if (event.httpMethod === 'POST') {
             if (!event.body) {
                 return { statusCode: 400, body: 'Missing request body' };
             }
 
             const payload = JSON.parse(event.body);
-            const schema = [
-                'id',
-                'date',
-                'plantName',
-                'furnaceCount',
-                'totalIntake',
-                'incinerationAmount',
-                'pitStorage',
-                'pitCapacity',
-                'platformReserved',
-                'actualIntake',
-                'overReservedTrips',
-                'adjustedTrips',
-                'updatedAt'
-            ];
+            const isUpdate = searchParams.get('method') === 'PUT' || payload._method === 'PUT';
 
-            // Check if sheet is empty to write headers
-            const checkResponse = await sheets.spreadsheets.values.get({
-                spreadsheetId,
-                range: 'A1:A1',
-            });
-            const isSheetEmpty = !checkResponse.data.values || checkResponse.data.values.length === 0;
+            if (isUpdate) {
+                // Update existing record (find by ID)
+                // 1. Fetch all rows
+                const currentRows = await sheets.spreadsheets.values.get({
+                    spreadsheetId,
+                    range: `${sheetName}!A:O`,
+                });
+
+                const rows = currentRows.data.values || [];
+                const headers = rows[0] || [];
+                const idIndex = headers.indexOf('id');
+
+                if (idIndex === -1) {
+                    return { statusCode: 500, body: 'ID column not found for update' };
+                }
+
+                const itemToUpdate = Array.isArray(payload) ? payload[0] : payload;
+                const rowIndex = rows.findIndex(r => r[idIndex] === itemToUpdate.id);
+
+                if (rowIndex === -1) {
+                    return { statusCode: 404, body: 'Record not found for update' };
+                }
+
+                // Prepare new row values
+                const newRowValues = currentSchema.map(key => itemToUpdate[key] ?? '');
+
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId,
+                    range: `${sheetName}!A${rowIndex + 1}`,
+                    valueInputOption: 'USER_ENTERED',
+                    requestBody: {
+                        values: [newRowValues],
+                    },
+                });
+
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ message: 'Updated successfully' }),
+                };
+            }
+
+            // Normal append
+            // Check if sheet exists/empty for headers
+            let needsHeaders = false;
+            try {
+                const check = await sheets.spreadsheets.values.get({
+                    spreadsheetId,
+                    range: `${sheetName}!A1:A1`,
+                });
+                if (!check.data.values || check.data.values.length === 0) {
+                    needsHeaders = true;
+                }
+            } catch (e) {
+                needsHeaders = true;
+            }
 
             const rowsToAdd = Array.isArray(payload) ? payload : [payload];
             const values = rowsToAdd.map((item: any) => {
-                return schema.map(key => item[key] ?? '');
+                return currentSchema.map(key => item[key] ?? '');
             });
 
-            if (isSheetEmpty) {
-                // Prepend headers to the values
-                values.unshift(schema);
+            if (needsHeaders) {
+                values.unshift(currentSchema);
             }
 
             await sheets.spreadsheets.values.append({
                 spreadsheetId,
-                range: 'A1',
+                range: `${sheetName}!A1`,
                 valueInputOption: 'USER_ENTERED',
                 requestBody: {
                     values: values,

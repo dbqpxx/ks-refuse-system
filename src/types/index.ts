@@ -1,5 +1,20 @@
+// Role-based access control roles
+export type UserRole = 'admin' | 'user';
+
+// User structure
+export interface User {
+    id: string;
+    username: string; // "代號" (Account ID)
+    email: string;
+    role: UserRole;
+    isApproved: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
 // Plant names as a union type
 export type PlantName = '中區廠' | '南區廠' | '仁武廠' | '岡山廠';
+
 
 // Main operational data structure
 export interface PlantData {
