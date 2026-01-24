@@ -7,7 +7,7 @@ interface PlantStatusCardProps {
 }
 
 export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
-    const { plantName, totalIntake, incinerationAmount, pitStoragePercentage, furnaceCount } = plant;
+    const { plantName, totalIntake, incinerationAmount, pitStoragePercentage, pitStorage, pitCapacity, furnaceCount, maxFurnaces } = plant;
 
     const isStorageHigh = pitStoragePercentage > 100;
     const isStorageWarning = pitStoragePercentage > 80 && pitStoragePercentage <= 100;
@@ -84,7 +84,6 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
                     </div>
                 </div>
 
-                {/* Pit Storage Progress */}
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">貯坑佔比</span>
@@ -98,6 +97,10 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
                             style={{ width: `${Math.min(pitStoragePercentage, 100)}%` }}
                         />
                     </div>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>存量: {pitStorage.toLocaleString()} 噸</span>
+                        <span>容量: {pitCapacity.toLocaleString()} 噸</span>
+                    </div>
                     {pitStoragePercentage > 100 && (
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden mt-1">
                             <div
@@ -108,7 +111,6 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
                     )}
                 </div>
 
-                {/* Furnace Count */}
                 <div className="flex items-center justify-between pt-2 border-t border-border/50">
                     <span className="text-xs text-muted-foreground">運轉爐數</span>
                     <div className="flex items-center gap-1">
@@ -118,13 +120,13 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
                                 className="w-2 h-4 rounded-sm bg-gradient-to-t from-orange-500 to-yellow-400"
                             />
                         ))}
-                        {Array.from({ length: Math.max(0, 4 - furnaceCount) }).map((_, i) => (
+                        {Array.from({ length: Math.max(0, maxFurnaces - furnaceCount) }).map((_, i) => (
                             <div
                                 key={`empty-${i}`}
                                 className="w-2 h-4 rounded-sm bg-gray-200 dark:bg-gray-600"
                             />
                         ))}
-                        <span className="text-sm font-semibold ml-2">{furnaceCount} 座</span>
+                        <span className="text-sm font-semibold ml-2">{furnaceCount} / {maxFurnaces} 座</span>
                     </div>
                 </div>
             </CardContent>

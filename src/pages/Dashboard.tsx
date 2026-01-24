@@ -7,7 +7,7 @@ import PitStorageChart from '@/components/PitStorageChart';
 import PlantStatusCard from '@/components/PlantStatusCard';
 import TrendChart from '@/components/TrendChart';
 import { apiService } from '@/services/api';
-import type { DailySummary } from '@/types';
+import { PLANTS, type DailySummary, type Plant } from '@/types';
 
 export default function DashboardPage() {
     const [summary, setSummary] = useState<DailySummary | null>(null);
@@ -52,20 +52,29 @@ export default function DashboardPage() {
             const totalIntake = dayData.reduce((sum, r) => sum + r.totalIntake, 0);
             const totalIncineration = dayData.reduce((sum, r) => sum + r.incinerationAmount, 0);
             const furnacesRunning = dayData.reduce((sum, r) => sum + r.furnaceCount, 0);
-            const plants = dayData.map(r => ({
-                plantName: r.plantName,
-                totalIntake: r.totalIntake,
-                incinerationAmount: r.incinerationAmount,
-                pitStoragePercentage: r.pitCapacity ? (r.pitStorage / r.pitCapacity) * 100 : 0,
-                furnaceCount: r.furnaceCount
-            }));
+            const plants = dayData.map(r => {
+                const plantConfig = PLANTS.find(p => p.name === r.plantName);
+                return {
+                    plantName: r.plantName,
+                    totalIntake: r.totalIntake,
+                    incinerationAmount: r.incinerationAmount,
+                    pitStoragePercentage: r.pitCapacity ? (r.pitStorage / r.pitCapacity) * 100 : 0,
+                    pitStorage: r.pitStorage,
+                    pitCapacity: r.pitCapacity,
+                    furnaceCount: r.furnaceCount,
+                    maxFurnaces: plantConfig?.maxFurnaces || 4
+                };
+            });
 
             setSummary({
                 date: dateToLoad,
                 totalIntake,
                 totalIncineration,
                 furnacesRunning,
-                furnacesStopped: (dayData.length * 3) - furnacesRunning, // simplified
+                furnacesStopped: dayData.reduce((sum, r) => {
+                    const plantConfig = PLANTS.find(p => p.name === r.plantName);
+                    return sum + ((plantConfig?.maxFurnaces || 4) - r.furnaceCount);
+                }, 0),
                 plants
             });
 
@@ -81,13 +90,19 @@ export default function DashboardPage() {
                         totalIncineration: dData.reduce((sum, r) => sum + r.incinerationAmount, 0),
                         furnacesRunning: dData.reduce((sum, r) => sum + r.furnaceCount, 0),
                         furnacesStopped: 0,
-                        plants: dData.map(r => ({
-                            plantName: r.plantName,
-                            totalIntake: r.totalIntake,
-                            incinerationAmount: r.incinerationAmount,
-                            pitStoragePercentage: r.pitCapacity ? (r.pitStorage / r.pitCapacity) * 100 : 0,
-                            furnaceCount: r.furnaceCount
-                        }))
+                        plants: dData.map(r => {
+                            const plantConfig = PLANTS.find(p => p.name === r.plantName);
+                            return {
+                                plantName: r.plantName,
+                                totalIntake: r.totalIntake,
+                                incinerationAmount: r.incinerationAmount,
+                                pitStoragePercentage: r.pitCapacity ? (r.pitStorage / r.pitCapacity) * 100 : 0,
+                                pitStorage: r.pitStorage,
+                                pitCapacity: r.pitCapacity,
+                                furnaceCount: r.furnaceCount,
+                                maxFurnaces: plantConfig?.maxFurnaces || 4
+                            };
+                        })
                     }
                 };
             });
@@ -193,7 +208,7 @@ export default function DashboardPage() {
             <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
                 <MetricCard
                     title="總進廠量"
-                    value={summary?.totalIntake.toFixed(0) || '--'}
+                    value={summary?.totalIntake.toLocaleString() || '--'}
                     unit="噸"
                     icon={TrendingUp}
                     description="當日合計"
@@ -202,7 +217,7 @@ export default function DashboardPage() {
                 />
                 <MetricCard
                     title="總焚化量"
-                    value={summary?.totalIncineration.toFixed(0) || '--'}
+                    value={summary?.totalIncineration.toLocaleString() || '--'}
                     unit="噸"
                     icon={Flame}
                     description="當日合計"
@@ -223,7 +238,7 @@ export default function DashboardPage() {
                 />
                 <MetricCard
                     title="運轉爐數"
-                    value={summary?.furnacesRunning || 0}
+                    value={summary?.furnacesRunning.toLocaleString() || 0}
                     unit="座"
                     icon={Factory}
                     description={`${summary?.plants.length || 0} 廠區資料`}

@@ -59,7 +59,10 @@ export interface PlantSummary {
     totalIntake: number;
     incinerationAmount: number;
     pitStoragePercentage: number;
+    pitStorage: number;
+    pitCapacity: number;
     furnaceCount: number;
+    maxFurnaces: number;
 }
 
 // Filter options for querying data
