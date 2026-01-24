@@ -1,13 +1,46 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Factory, Flame, TrendingUp, AlertTriangle } from 'lucide-react';
-import type { PlantSummary } from '@/types';
+import { Flame, TrendingUp, AlertTriangle } from 'lucide-react';
+import type { PlantSummary, PlantName } from '@/types';
 
 interface PlantStatusCardProps {
     plant: PlantSummary;
 }
 
+const plantColorConfig: Record<PlantName, { color: string; bg: string; border: string; text: string; iconBg: string }> = {
+    '中區廠': {
+        color: 'text-blue-600',
+        bg: 'bg-blue-50/50',
+        border: 'border-blue-200',
+        text: 'text-blue-700',
+        iconBg: 'bg-blue-100',
+    },
+    '南區廠': {
+        color: 'text-red-600',
+        bg: 'bg-red-50/50',
+        border: 'border-red-200',
+        text: 'text-red-700',
+        iconBg: 'bg-red-100',
+    },
+    '仁武廠': {
+        color: 'text-green-600',
+        bg: 'bg-green-50/50',
+        border: 'border-green-200',
+        text: 'text-green-700',
+        iconBg: 'bg-green-100',
+    },
+    '岡山廠': {
+        color: 'text-indigo-600',
+        bg: 'bg-indigo-50/50',
+        border: 'border-indigo-200',
+        text: 'text-indigo-700',
+        iconBg: 'bg-indigo-100',
+    },
+};
+
 export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
     const { plantName, totalIntake, incinerationAmount, pitStoragePercentage, pitStorage, pitCapacity, furnaceCount, maxFurnaces } = plant;
+
+    const config = plantColorConfig[plantName];
 
     const isStorageHigh = pitStoragePercentage > 100;
     const isStorageWarning = pitStoragePercentage > 80 && pitStoragePercentage <= 100;
@@ -29,13 +62,6 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
         green: 'from-green-500 to-green-600',
     };
 
-    const bgClasses = {
-        red: 'bg-red-50 border-red-200',
-        orange: 'bg-orange-50 border-orange-200',
-        yellow: 'bg-yellow-50 border-yellow-200',
-        green: 'bg-green-50 border-green-200',
-    };
-
     const textClasses = {
         red: 'text-red-700',
         orange: 'text-orange-700',
@@ -44,11 +70,13 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
     };
 
     return (
-        <Card className={`transition-all duration-200 hover:shadow-lg ${bgClasses[statusColor]} dark:bg-card dark:border-border`}>
+        <Card className={`relative transition-all duration-200 hover:shadow-lg border-l-4 ${config.bg} ${config.border} dark:bg-card dark:border-border`}>
             <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
-                        <Factory className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className={`text-lg font-bold flex items-center gap-3 ${config.text}`}>
+                        <div className={`p-2 rounded-xl ${config.iconBg} ${config.color} shadow-sm`}>
+                            <Flame className="h-6 w-6" fill="currentColor" />
+                        </div>
                         {plantName}
                     </CardTitle>
                     {isStorageHigh && (
@@ -62,22 +90,22 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
             <CardContent className="space-y-4">
                 {/* Main Metrics Grid */}
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background/60 rounded-lg p-3">
+                    <div className="bg-background/80 rounded-lg p-3 shadow-sm">
                         <div className="flex items-center gap-1 text-muted-foreground mb-1">
                             <TrendingUp className="h-3 w-3" />
                             <span className="text-xs">進廠量</span>
                         </div>
-                        <p className="text-lg font-bold">
+                        <p className="text-lg font-bold text-foreground">
                             {totalIntake.toLocaleString()}
                             <span className="text-xs font-normal text-muted-foreground ml-1">噸</span>
                         </p>
                     </div>
-                    <div className="bg-background/60 rounded-lg p-3">
+                    <div className="bg-background/80 rounded-lg p-3 shadow-sm">
                         <div className="flex items-center gap-1 text-muted-foreground mb-1">
                             <Flame className="h-3 w-3" />
                             <span className="text-xs">焚化量</span>
                         </div>
-                        <p className="text-lg font-bold">
+                        <p className="text-lg font-bold text-foreground">
                             {incinerationAmount.toLocaleString()}
                             <span className="text-xs font-normal text-muted-foreground ml-1">噸</span>
                         </p>
@@ -117,13 +145,13 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
                         {Array.from({ length: furnaceCount }).map((_, i) => (
                             <div
                                 key={i}
-                                className="w-2 h-4 rounded-sm bg-gradient-to-t from-orange-500 to-yellow-400"
+                                className="w-2.5 h-5 rounded-sm bg-gradient-to-t from-orange-500 to-yellow-400 shadow-sm"
                             />
                         ))}
                         {Array.from({ length: Math.max(0, maxFurnaces - furnaceCount) }).map((_, i) => (
                             <div
                                 key={`empty-${i}`}
-                                className="w-2 h-4 rounded-sm bg-gray-200 dark:bg-gray-600"
+                                className="w-2.5 h-5 rounded-sm bg-gray-200 dark:bg-gray-600"
                             />
                         ))}
                     </div>
