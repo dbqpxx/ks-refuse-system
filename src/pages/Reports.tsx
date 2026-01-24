@@ -647,11 +647,11 @@ export default function ReportsPage() {
                                 <CardTitle className="text-lg">📊 貯坑佔比趨勢</CardTitle>
                                 <CardDescription>各廠區貯坑佔比變化趨勢（%）</CardDescription>
                             </CardHeader>
-                            <CardContent className="px-2 sm:px-6">
+                            <CardContent className="px-0 sm:px-6">
                                 {pitStorageChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={pitStorageChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                                            <LineChart data={pitStorageChartData} margin={{ top: 10, right: 0, left: -35, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -710,11 +710,11 @@ export default function ReportsPage() {
                                 <CardTitle className="text-lg">⚡ 每爐焚化量趨勢</CardTitle>
                                 <CardDescription>各廠區每爐平均焚化量（公噸/爐）</CardDescription>
                             </CardHeader>
-                            <CardContent className="px-2 sm:px-6">
+                            <CardContent className="px-0 sm:px-6">
                                 {perFurnaceChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={perFurnaceChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                                            <BarChart data={perFurnaceChartData} margin={{ top: 10, right: 0, left: -35, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -779,11 +779,11 @@ export default function ReportsPage() {
                                 <CardTitle className="text-lg">📈 累積進廠量與焚化量趨勢</CardTitle>
                                 <CardDescription>查詢期間的累積總量與平均貯坑佔比</CardDescription>
                             </CardHeader>
-                            <CardContent className="px-2 sm:px-6">
+                            <CardContent className="px-0 sm:px-6">
                                 {cumulativeChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <ComposedChart data={cumulativeChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                                            <ComposedChart data={cumulativeChartData} margin={{ top: 10, right: 0, left: -35, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -798,7 +798,15 @@ export default function ReportsPage() {
                                                     axisLine={{ stroke: '#e5e7eb' }}
                                                     label={{ value: '累積量（噸）', angle: -90, position: 'insideLeft', fontSize: 10 }}
                                                 />
-                                                {/* Right YAxis removed to increase width */}
+                                                <YAxis
+                                                    yAxisId="right"
+                                                    orientation="right"
+                                                    tick={{ fontSize: 11 }}
+                                                    tickLine={false}
+                                                    axisLine={{ stroke: '#374151' }}
+                                                    domain={[0, 150]}
+                                                    tickFormatter={(value) => `${value}%`}
+                                                />
                                                 <Tooltip
                                                     contentStyle={{
                                                         backgroundColor: 'white',
@@ -832,7 +840,7 @@ export default function ReportsPage() {
                                                 <Line
                                                     type="monotone"
                                                     dataKey="平均貯坑佔比"
-                                                    yAxisId="left"
+                                                    yAxisId="right"
                                                     stroke="#f59e0b"
                                                     strokeWidth={2}
                                                     strokeDasharray="5 5"
