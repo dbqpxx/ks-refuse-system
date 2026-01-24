@@ -49,10 +49,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const register = async (username: string, email: string) => {
         setIsLoading(true);
         try {
+            const existingUsers = await apiService.fetchUsers();
+            const role = existingUsers.length === 0 ? 'admin' : 'user';
+
             await apiService.registerUser({
                 username,
                 email,
-                role: 'user' // Default to user
+                role
             });
         } finally {
             setIsLoading(false);
