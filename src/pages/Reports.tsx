@@ -38,6 +38,7 @@ export default function ReportsPage() {
     const [activeTab, setActiveTab] = useState('table');
     const [data, setData] = useState<PlantData[]>([]);
     const [statistics, setStatistics] = useState<RangeStatistics | null>(null);
+    const [showFullDetails, setShowFullDetails] = useState(false);
 
     // Filter state - initialized with empty dates, will be set from storage
     const [filter, setFilter] = useState<DataFilter>({
@@ -260,6 +261,10 @@ export default function ReportsPage() {
     // Get available plants from data
     const availablePlants = [...new Set(data.map(r => r.plantName))];
 
+    // Data for display in table
+    const latestDate = data.length > 0 ? data[0].date : null;
+    const displayedData = showFullDetails ? data : data.filter(d => d.date === latestDate);
+
     return (
         <div className="space-y-6">
             <div>
@@ -404,14 +409,29 @@ export default function ReportsPage() {
                 {/* Table View */}
                 <TabsContent value="table">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>資料明細</CardTitle>
-                            <CardDescription>
-                                共 {data.length} 筆資料
-                            </CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                            <div>
+                                <CardTitle>{showFullDetails ? '完整資料明細' : '最新資料摘要'}</CardTitle>
+                                <CardDescription>
+                                    {showFullDetails
+                                        ? `顯示查詢範圍內共 ${data.length} 筆資料`
+                                        : `顯示 ${latestDate || ''} 最新資料 (${displayedData.length} 筆)`
+                                    }
+                                </CardDescription>
+                            </div>
+                            {data.length > 0 && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowFullDetails(!showFullDetails)}
+                                    className="ml-auto"
+                                >
+                                    {showFullDetails ? '收合至今日' : '詳細資料明細'}
+                                </Button>
+                            )}
                         </CardHeader>
                         <CardContent>
-                            {data.length > 0 ? (
+                            {displayedData.length > 0 ? (
                                 <div className="rounded-md border overflow-x-auto">
                                     <Table>
                                         <TableHeader>
@@ -427,7 +447,7 @@ export default function ReportsPage() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {data.map((record) => (
+                                            {displayedData.map((record) => (
                                                 <TableRow key={record.id}>
                                                     <TableCell className="font-medium whitespace-nowrap">{record.date}</TableCell>
                                                     <TableCell className="whitespace-nowrap">
