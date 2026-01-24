@@ -60,7 +60,7 @@ export const apiService = {
         const json = await response.json();
         return (json.data || []).map((u: any) => ({
             ...u,
-            isApproved: u.isApproved === 'true' || u.isApproved === true
+            isApproved: String(u.isApproved).toLowerCase() === 'true' || u.isApproved === true
         }));
     },
 

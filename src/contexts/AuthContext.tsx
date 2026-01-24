@@ -35,7 +35,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 throw new Error('帳號或電子郵件錯誤');
             }
 
-            if (!foundUser.isApproved) {
+            // Rescue Logic: If this is the ONLY user and they are an admin, allow login regardless of isApproved
+            // This handles cases where the first user was created before the auto-approval fix.
+            const isFirstAdminRescue = users.length === 1 && foundUser.role === 'admin';
+
+            if (!foundUser.isApproved && !isFirstAdminRescue) {
                 throw new Error('您的帳號尚未通過管理員許可，請稍後再試');
             }
 
