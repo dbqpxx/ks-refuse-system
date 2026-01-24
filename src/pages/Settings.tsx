@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Database, Trash2, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { storageService } from '@/services/storage';
+import { apiService } from '@/services/api';
 
 export default function SettingsPage() {
     const [recordCount, setRecordCount] = useState(0);
@@ -13,15 +13,49 @@ export default function SettingsPage() {
         loadStats();
     }, []);
 
-    const loadStats = () => {
-        const count = storageService.getRecordCount();
-        setRecordCount(count);
+    const loadStats = async () => {
+        try {
+            const data = await apiService.fetchPlantData();
+            setRecordCount(data.length);
+        } catch (error) {
+            console.error("Failed to load record count", error);
+        }
     };
 
-    const handleExportAll = () => {
+    const handleExportAll = async () => {
         try {
+            const data = await apiService.fetchPlantData();
+
+            // Client-side CSV generation
             const filename = `焚化廠完整數據_${new Date().toISOString().split('T')[0]}.csv`;
-            storageService.downloadCSV(filename);
+            const headers = [
+                '日期', '廠區', '爐數', '總進廠量(噸)', '焚化量(噸)', '貯坑量(噸)', '貯坑容量(噸)', '貯坑佔比(%)', '平台預約', '實際進廠', '超約車次', '調整車次'
+            ];
+            const rows = data.map(record => [
+                record.date,
+                record.plantName,
+                record.furnaceCount,
+                record.totalIntake,
+                record.incinerationAmount,
+                record.pitStorage,
+                record.pitCapacity,
+                record.pitCapacity ? ((record.pitStorage / record.pitCapacity) * 100).toFixed(2) : 0,
+                record.platformReserved ?? '',
+                record.actualIntake ?? '',
+                record.overReservedTrips ?? '',
+                record.adjustedTrips ?? ''
+            ]);
+
+            const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
             setMessage({ type: 'success', text: '資料已成功匯出！' });
             setTimeout(() => setMessage(null), 3000);
         } catch (error) {
@@ -31,16 +65,8 @@ export default function SettingsPage() {
     };
 
     const handleClearData = () => {
-        try {
-            storageService.clearAllData();
-            setRecordCount(0);
-            setShowConfirm(false);
-            setMessage({ type: 'success', text: '所有資料已清除' });
-            setTimeout(() => setMessage(null), 3000);
-        } catch (error) {
-            setMessage({ type: 'error', text: '清除失敗，請稍後再試' });
-            setTimeout(() => setMessage(null), 3000);
-        }
+        alert("清除功能尚未實作於 Google Sheets 版本");
+        setShowConfirm(false);
     };
 
     return (
@@ -53,8 +79,8 @@ export default function SettingsPage() {
             {message && (
                 <div
                     className={`p-4 rounded-lg border flex items-start gap-3 ${message.type === 'success'
-                            ? 'bg-green-50 border-green-200 text-green-800'
-                            : 'bg-red-50 border-red-200 text-red-800'
+                        ? 'bg-green-50 border-green-200 text-green-800'
+                        : 'bg-red-50 border-red-200 text-red-800'
                         }`}
                 >
                     {message.type === 'success' ? (
@@ -89,15 +115,15 @@ export default function SettingsPage() {
                     <div className="grid gap-3 pt-2">
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">儲存位置</span>
-                            <span className="font-medium">瀏覽器 localStorage</span>
+                            <span className="font-medium">Google Sheets</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">資料格式</span>
-                            <span className="font-medium">JSON</span>
+                            <span className="font-medium">Cloud Database</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">同步狀態</span>
-                            <span className="font-medium text-green-600">本地儲存</span>
+                            <span className="font-medium text-green-600">雲端同步</span>
                         </div>
                     </div>
                 </CardContent>
@@ -138,7 +164,7 @@ export default function SettingsPage() {
                         <div className="flex-1">
                             <h3 className="font-semibold text-red-900">清除所有資料</h3>
                             <p className="text-sm text-red-700 mt-1">
-                                ⚠️ 此操作將永久刪除所有本地儲存的營運資料，無法復原
+                                ⚠️ 此操作將永久刪除所有 Google Sheets 上的營運資料 (API 暫未支援)
                             </p>
 
                             {!showConfirm ? (
