@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -8,7 +9,9 @@ import {
     Users,
     Database,
     LogOut,
-    User as UserIcon
+    User as UserIcon,
+    Moon,
+    Sun
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +29,27 @@ export default function AppLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+
+    // Dark mode state - shared across app
+    const [darkMode, setDarkMode] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('theme');
+            if (stored) return stored === 'dark';
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        return false;
+    });
+
+    // Apply dark mode class to document
+    useEffect(() => {
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+    }, [darkMode]);
 
     const filteredNavItems = navItems.filter(item =>
         !item.roles || (user && item.roles.includes(user.role))
@@ -67,7 +91,21 @@ export default function AppLayout() {
                             })}
                         </nav>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4">
+                        {/* Theme Toggle Button */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDarkMode(!darkMode)}
+                            className="h-9 w-9"
+                            title={darkMode ? '切換淺色模式' : '切換深色模式'}
+                        >
+                            {darkMode ? (
+                                <Sun className="h-4 w-4 text-amber-500" />
+                            ) : (
+                                <Moon className="h-4 w-4 text-indigo-500" />
+                            )}
+                        </Button>
                         <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
                             <UserIcon className="h-4 w-4" />
                             <span>{user?.username} ({user?.role === 'admin' ? '管理者' : '使用者'})</span>
@@ -78,10 +116,10 @@ export default function AppLayout() {
                         </Button>
                     </div>
                 </div>
-                {/* Mobile Nav */}
-                <div className="md:hidden border-t overflow-x-auto">
-                    <nav className="flex items-center p-2 gap-2 min-w-max">
-                        {filteredNavItems.map((item) => {
+                {/* Mobile Bottom Navigation - Fixed */}
+                <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t shadow-lg">
+                    <nav className="flex items-center justify-around p-2 max-w-screen">
+                        {filteredNavItems.slice(0, 5).map((item) => {
                             const Icon = item.icon;
                             const isActive = location.pathname === item.href;
                             return (
@@ -89,21 +127,21 @@ export default function AppLayout() {
                                     key={item.href}
                                     to={item.href}
                                     className={cn(
-                                        "flex flex-col items-center justify-center gap-1 px-3 py-2 text-xs font-medium rounded-md transition-colors min-w-[64px]",
+                                        "flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[10px] font-medium rounded-lg transition-all min-w-[52px]",
                                         isActive
-                                            ? "bg-primary/10 text-primary"
-                                            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                            ? "bg-primary/15 text-primary scale-105"
+                                            : "text-muted-foreground active:scale-95"
                                     )}
                                 >
-                                    <Icon className="h-5 w-5" />
-                                    {item.label}
+                                    <Icon className={cn("h-5 w-5 transition-transform", isActive && "scale-110")} />
+                                    <span className="truncate">{item.label}</span>
                                 </Link>
                             );
                         })}
                     </nav>
                 </div>
             </header>
-            <main className="container py-6 px-4">
+            <main className="container py-6 px-4 pb-24 md:pb-6">
                 <Outlet />
             </main>
         </div>

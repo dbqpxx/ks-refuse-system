@@ -6,12 +6,15 @@ import MetricCard from '@/components/MetricCard';
 import PitStorageChart from '@/components/PitStorageChart';
 import PlantStatusCard from '@/components/PlantStatusCard';
 import TrendChart from '@/components/TrendChart';
+import AlertHub from '@/components/AlertHub';
+import PlantMap from '@/components/PlantMap';
 import { apiService } from '@/services/api';
 import { PLANTS, type DailySummary } from '@/types';
 
 export default function DashboardPage() {
     const [summary, setSummary] = useState<DailySummary | null>(null);
     const [trendData, setTrendData] = useState<{ date: string; summary: DailySummary }[]>([]);
+    const [allTrendData, setAllTrendData] = useState<{ date: string; summary: DailySummary }[]>([]); // Full history for prediction
     const [trend, setTrend] = useState<{
         intakeTrend: number | null;
         incinerationTrend: number | null;
@@ -108,6 +111,36 @@ export default function DashboardPage() {
             });
             setTrendData(trend);
 
+            // ALL historical data for prediction (using all available dates)
+            const allUniqueDates = [...new Set(allData.map(d => d.date))].sort();
+            const allTrend = allUniqueDates.map(date => {
+                const dData = allData.filter(d => d.date === date);
+                return {
+                    date,
+                    summary: {
+                        date,
+                        totalIntake: dData.reduce((sum, r) => sum + r.totalIntake, 0),
+                        totalIncineration: dData.reduce((sum, r) => sum + r.incinerationAmount, 0),
+                        furnacesRunning: dData.reduce((sum, r) => sum + r.furnaceCount, 0),
+                        furnacesStopped: 0,
+                        plants: dData.map(r => {
+                            const plantConfig = PLANTS.find(p => p.name === r.plantName);
+                            return {
+                                plantName: r.plantName,
+                                totalIntake: r.totalIntake,
+                                incinerationAmount: r.incinerationAmount,
+                                pitStoragePercentage: r.pitCapacity ? (r.pitStorage / r.pitCapacity) * 100 : 0,
+                                pitStorage: r.pitStorage,
+                                pitCapacity: r.pitCapacity,
+                                furnaceCount: r.furnaceCount,
+                                maxFurnaces: plantConfig?.maxFurnaces || 4
+                            };
+                        })
+                    }
+                };
+            });
+            setAllTrendData(allTrend);
+
             // Day over Day Trend
             const sortedDates = [...new Set(allData.map(d => d.date))].sort();
             const currentIndex = sortedDates.indexOf(dateToLoad);
@@ -124,11 +157,25 @@ export default function DashboardPage() {
                 ? prevData.reduce((sum, r) => sum + (r.pitCapacity ? (r.pitStorage / r.pitCapacity) * 100 : 0), 0) / prevData.length
                 : 0;
 
+            // Global Metrics for Layout Fill
+            const totalCapacity = dayData.reduce((sum, r) => sum + (r.pitCapacity || 0), 0);
+            const totalPitStorage = dayData.reduce((sum, r) => sum + (r.pitStorage || 0), 0);
+            const remainingCapacity = totalCapacity - totalPitStorage;
+            const intakeRatio = totalIncineration > 0 ? (totalIntake / totalIncineration) * 100 : 0;
+
             setTrend({
                 intakeTrend: prevIntake > 0 ? ((totalIntake - prevIntake) / prevIntake) * 100 : null,
                 incinerationTrend: prevIncineration > 0 ? ((totalIncineration - prevIncineration) / prevIncineration) * 100 : null,
                 pitStorageTrend: prevAvgPit > 0 ? ((currentAvgPit - prevAvgPit) / prevAvgPit) * 100 : null
             });
+
+            // Update Summary with extra global stats
+            setSummary(prev => prev ? {
+                ...prev,
+                totalCapacity,
+                remainingCapacity,
+                intakeRatio
+            } : null);
 
         } catch (error) {
             console.error('Error loading dashboard data:', error);
@@ -204,51 +251,80 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Key Metrics */}
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-                <MetricCard
-                    title="總進廠量"
-                    value={summary?.totalIntake.toLocaleString() || '--'}
-                    unit="噸"
-                    icon={TrendingUp}
-                    description="當日合計"
-                    variant="blue"
-                    trend={trend?.intakeTrend !== null ? { value: trend?.intakeTrend ?? null } : undefined}
-                />
-                <MetricCard
-                    title="總焚化量"
-                    value={summary?.totalIncineration.toLocaleString() || '--'}
-                    unit="噸"
-                    icon={Flame}
-                    description="當日合計"
-                    variant="red"
-                    trend={trend?.incinerationTrend !== null ? { value: trend?.incinerationTrend ?? null } : undefined}
-                />
-                <MetricCard
-                    title="平均貯坑佔比"
-                    value={avgPitStorage.toFixed(1)}
-                    unit="%"
-                    icon={Gauge}
-                    description="各廠平均"
-                    variant={avgPitStorage > 80 ? 'red' : avgPitStorage > 60 ? 'yellow' : 'green'}
-                    trend={trend?.pitStorageTrend !== null ? {
-                        value: trend?.pitStorageTrend ?? null,
-                        isPositive: (trend?.pitStorageTrend ?? 0) < 0 // For pit storage, decrease is good
-                    } : undefined}
-                />
-                <MetricCard
-                    title="運轉爐數"
-                    value={summary?.furnacesRunning.toLocaleString() || 0}
-                    unit="座"
-                    icon={Factory}
-                    description={`${summary?.plants.length || 0} 廠區資料`}
-                    variant="default"
-                />
+            {/* Alert Hub - High Level Suggestions */}
+            {summary && <AlertHub plants={summary.plants} />}
+
+            {/* Top Analysis Section: Metrics + Map */}
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-4">
+                {/* Left: Key Metrics Matrix (3x2) */}
+                <div className="lg:col-span-3">
+                    <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+                        <MetricCard
+                            title="總進廠量"
+                            value={summary?.totalIntake.toLocaleString() || '--'}
+                            unit="噸"
+                            icon={TrendingUp}
+                            description="全市合計"
+                            variant="blue"
+                            trend={trend?.intakeTrend !== null ? { value: trend?.intakeTrend ?? null } : undefined}
+                        />
+                        <MetricCard
+                            title="總焚化量"
+                            value={summary?.totalIncineration.toLocaleString() || '--'}
+                            unit="噸"
+                            icon={Flame}
+                            description="全市合計"
+                            variant="red"
+                            trend={trend?.incinerationTrend !== null ? { value: trend?.incinerationTrend ?? null } : undefined}
+                        />
+                        <MetricCard
+                            title="進焚比"
+                            value={(summary as any)?.intakeRatio?.toFixed(1) || '--'}
+                            unit="%"
+                            icon={Gauge}
+                            description="進廠/焚化比例"
+                            variant={(summary as any)?.intakeRatio > 100 ? 'red' : 'green'}
+                        />
+                        <MetricCard
+                            title="平均貯坑佔比"
+                            value={avgPitStorage.toFixed(1)}
+                            unit="%"
+                            icon={Gauge}
+                            description="全市負荷"
+                            variant={avgPitStorage > 80 ? 'red' : avgPitStorage > 60 ? 'yellow' : 'green'}
+                            trend={trend?.pitStorageTrend !== null ? {
+                                value: trend?.pitStorageTrend ?? null,
+                                isPositive: (trend?.pitStorageTrend ?? 0) < 0
+                            } : undefined}
+                        />
+                        <MetricCard
+                            title="總剩餘容量"
+                            value={(summary as any)?.remainingCapacity?.toLocaleString() || '--'}
+                            unit="噸"
+                            icon={Factory}
+                            description="全市可用坑位"
+                            variant={(summary as any)?.remainingCapacity > 0 ? 'green' : 'red'}
+                        />
+                        <MetricCard
+                            title="運轉爐數"
+                            value={summary?.furnacesRunning.toLocaleString() || 0}
+                            unit="座"
+                            icon={Factory}
+                            description={`${summary?.plants.length || 0} 廠營運中`}
+                            variant="default"
+                        />
+                    </div>
+                </div>
+
+                {/* Right: Geographic Insights - Height Matched to 2 rows of metrics */}
+                <div className="lg:col-span-1 bg-white dark:bg-card rounded-xl border border-border p-4 shadow-sm flex flex-col justify-center min-h-[320px]">
+                    {summary && <PlantMap plants={summary.plants} />}
+                </div>
             </div>
 
             {/* Trend Chart - Full Width */}
             {trendData.length > 1 && (
-                <TrendChart data={trendData} />
+                <TrendChart data={trendData} allHistoricalData={allTrendData} />
             )}
 
             {/* Pit Storage Overview */}

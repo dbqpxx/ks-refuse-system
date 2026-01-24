@@ -1,17 +1,38 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Database, Trash2, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Database, Trash2, Download, AlertCircle, CheckCircle2, Moon, Sun, Palette } from 'lucide-react';
 import { apiService } from '@/services/api';
 
 export default function SettingsPage() {
     const [recordCount, setRecordCount] = useState(0);
     const [showConfirm, setShowConfirm] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [darkMode, setDarkMode] = useState<boolean>(() => {
+        // Initialize from localStorage or system preference
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('theme');
+            if (stored) return stored === 'dark';
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        return false;
+    });
 
     useEffect(() => {
         loadStats();
     }, []);
+
+    // Apply dark mode class to document
+    useEffect(() => {
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+    }, [darkMode]);
+
 
     const loadStats = async () => {
         try {
@@ -75,6 +96,43 @@ export default function SettingsPage() {
                 <h1 className="text-3xl font-bold tracking-tight">設定</h1>
                 <p className="text-muted-foreground mt-2">系統設定與資料管理</p>
             </div>
+
+            {/* Appearance Settings */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Palette className="h-5 w-5" />
+                        外觀設定
+                    </CardTitle>
+                    <CardDescription>
+                        調整應用程式的顯示主題
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                            {darkMode ? (
+                                <Moon className="h-5 w-5 text-indigo-500" />
+                            ) : (
+                                <Sun className="h-5 w-5 text-amber-500" />
+                            )}
+                            <div>
+                                <p className="font-medium">深色模式</p>
+                                <p className="text-sm text-muted-foreground">
+                                    {darkMode ? '已啟用 - 減少眼睛疲勞' : '已停用 - 使用淺色主題'}
+                                </p>
+                            </div>
+                        </div>
+                        <Button
+                            onClick={() => setDarkMode(!darkMode)}
+                            variant={darkMode ? 'default' : 'outline'}
+                            size="sm"
+                        >
+                            {darkMode ? '切換淺色' : '切換深色'}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
 
             {message && (
                 <div

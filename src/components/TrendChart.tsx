@@ -15,11 +15,15 @@ import type { DailySummary } from '@/types';
 
 interface TrendChartProps {
     data: { date: string; summary: DailySummary }[];
+    allHistoricalData?: { date: string; summary: DailySummary }[]; // Full data for prediction
 }
 
-export default function TrendChart({ data }: TrendChartProps) {
-    // Transform data for the chart
-    const chartData = data.map(item => ({
+export default function TrendChart({ data, allHistoricalData }: TrendChartProps) {
+    // Use allHistoricalData for prediction if available, otherwise use data
+    const predictionSource = allHistoricalData || data;
+
+    // Transform data for display (recent days only)
+    const historicalData = data.map(item => ({
         date: item.date,
         displayDate: formatDate(item.date),
         進廠量: item.summary.totalIntake,
@@ -27,7 +31,71 @@ export default function TrendChart({ data }: TrendChartProps) {
         平均貯坑: item.summary.plants.length > 0
             ? item.summary.plants.reduce((sum, p) => sum + p.pitStoragePercentage, 0) / item.summary.plants.length
             : 0,
+        isPrediction: false
     }));
+
+    // Use ALL historical data for prediction calculation
+    const allIntakePoints = predictionSource.map(item => item.summary.totalIntake);
+    const allIncinerationPoints = predictionSource.map(item => item.summary.totalIncineration);
+    const allPitPoints = predictionSource.map(item =>
+        item.summary.plants.length > 0
+            ? item.summary.plants.reduce((sum, p) => sum + p.pitStoragePercentage, 0) / item.summary.plants.length
+            : 0
+    );
+
+    // Calculate predictions for next 3 days using ALL historical data
+    const next3Days: any[] = [];
+    if (allIntakePoints.length >= 2 && historicalData.length > 0) {
+        const lastDate = new Date(historicalData[historicalData.length - 1].date);
+
+        // Weighted Linear Regression - Recent data has higher weight
+        // Using exponential decay: weight = decay^(n-1-i), where decay = 0.95
+        const predict = (points: number[], steps: number) => {
+            const n = points.length;
+            const decay = 0.95; // Recent data weight decay factor
+
+            let sumW = 0, sumWX = 0, sumWY = 0, sumWXY = 0, sumWXX = 0;
+            for (let i = 0; i < n; i++) {
+                // Higher weight for more recent data
+                const weight = Math.pow(decay, n - 1 - i);
+                sumW += weight;
+                sumWX += weight * i;
+                sumWY += weight * points[i];
+                sumWXY += weight * i * points[i];
+                sumWXX += weight * i * i;
+            }
+
+            const denominator = sumW * sumWXX - sumWX * sumWX;
+            if (denominator === 0) return sumWY / sumW; // Fallback to weighted average
+
+            const slope = (sumW * sumWXY - sumWX * sumWY) / denominator;
+            const intercept = (sumWY - slope * sumWX) / sumW;
+            return Math.max(0, slope * (n - 1 + steps) + intercept);
+        };
+
+        for (let i = 1; i <= 3; i++) {
+            const nextDate = new Date(lastDate);
+            nextDate.setDate(lastDate.getDate() + i);
+            const dateStr = nextDate.toISOString().split('T')[0];
+
+            next3Days.push({
+                date: dateStr,
+                displayDate: formatDate(dateStr) + ' (預測)',
+                進廠量_預測: predict(allIntakePoints, i),
+                焚化量_預測: predict(allIncinerationPoints, i),
+                平均貯坑_預測: predict(allPitPoints, i),
+                isPrediction: true
+            });
+        }
+
+        // To connect the lines, the last historical point needs the first prediction value
+        const lastHistorical = historicalData[historicalData.length - 1] as any;
+        lastHistorical.進廠量_預測 = lastHistorical.進廠量;
+        lastHistorical.焚化量_預測 = lastHistorical.焚化量;
+        lastHistorical.平均貯坑_預測 = lastHistorical.平均貯坑;
+    }
+
+    const chartData = [...historicalData, ...next3Days];
 
     if (chartData.length === 0) {
         return (
@@ -118,6 +186,29 @@ export default function TrendChart({ data }: TrendChartProps) {
                                 dot={{ r: 2, fill: '#ef4444' }}
                                 activeDot={{ r: 4 }}
                                 animationDuration={1000}
+                                connectNulls
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="進廠量_預測"
+                                stroke="#3b82f6"
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                dot={false}
+                                activeDot={{ r: 4 }}
+                                connectNulls
+                                name="進廠量 (預測)"
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="焚化量_預測"
+                                stroke="#ef4444"
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                dot={false}
+                                activeDot={{ r: 4 }}
+                                connectNulls
+                                name="焚化量 (預測)"
                             />
                         </AreaChart>
                     </ResponsiveContainer>
@@ -166,6 +257,18 @@ export default function TrendChart({ data }: TrendChartProps) {
                                 dot={{ r: 2, fill: '#f59e0b' }}
                                 activeDot={{ r: 4 }}
                                 animationDuration={1000}
+                                connectNulls
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="平均貯坑_預測"
+                                stroke="#f59e0b"
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                dot={false}
+                                activeDot={{ r: 4 }}
+                                connectNulls
+                                name="平均貯坑 (預測)"
                             />
                         </LineChart>
                     </ResponsiveContainer>

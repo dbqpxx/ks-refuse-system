@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import { PLANTS } from '@/types';
 import type { PlantData, PlantName } from '@/types';
 
 export default function DataInputPage() {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('text');
     const [textInput, setTextInput] = useState('');
     const [parsedData, setParsedData] = useState<Partial<PlantData>[] | null>(null);
@@ -31,6 +33,13 @@ export default function DataInputPage() {
         pitStorage: 0,
         pitCapacity: 1000,
     });
+
+    const updateParsedItem = (index: number, field: keyof PlantData, value: any) => {
+        if (!parsedData) return;
+        const newData = [...parsedData];
+        newData[index] = { ...newData[index], [field]: value };
+        setParsedData(newData);
+    };
 
 
     const handleTextParse = () => {
@@ -105,7 +114,7 @@ export default function DataInputPage() {
 
             // Reload page after 1.5 seconds to show updated system state
             setTimeout(() => {
-                window.location.href = '/';
+                navigate('/');
             }, 1500);
         } catch (error) {
             setSubmitStatus({
@@ -148,7 +157,7 @@ export default function DataInputPage() {
 
             // Reload page
             setTimeout(() => {
-                window.location.href = '/';
+                navigate('/');
             }, 1500);
         } catch (error) {
             setSubmitStatus({
@@ -335,18 +344,23 @@ export default function DataInputPage() {
                                                 <tbody>
                                                     {parsedData.map((row, idx) => (
                                                         <tr key={idx} className="border-b last:border-0 hover:bg-muted/50">
-                                                            <td className="px-3 py-2">{row.date}</td>
-                                                            <td className="px-3 py-2">{row.plantName}</td>
-                                                            <td className="px-3 py-2 text-right">{row.furnaceCount}</td>
-                                                            <td className="px-3 py-2 text-right">{row.platformReserved ?? 0}</td>
-                                                            <td className="px-3 py-2 text-right">{row.overReservedTrips ?? 0}</td>
-                                                            <td className="px-3 py-2 text-right">{row.adjustedTrips ?? 0}</td>
-                                                            <td className="px-3 py-2 text-right">{row.actualIntake ?? 0}</td>
-                                                            <td className="px-3 py-2 text-right">{row.totalIntake}</td>
-                                                            <td className="px-3 py-2 text-right">{row.incinerationAmount}</td>
-                                                            <td className="px-3 py-2 text-right">{row.pitStorage}</td>
-                                                            <td className="px-3 py-2 text-right">{row.pitCapacity}</td>
-                                                            <td className="px-3 py-2 text-right">
+                                                            <td className="px-1 py-1"><Input className="h-8 text-xs min-w-[100px]" value={row.date} onChange={(e) => updateParsedItem(idx, 'date', e.target.value)} /></td>
+                                                            <td className="px-1 py-1">
+                                                                <Select value={row.plantName} onValueChange={(v) => updateParsedItem(idx, 'plantName', v)}>
+                                                                    <SelectTrigger className="h-8 text-xs min-w-[100px]"><SelectValue /></SelectTrigger>
+                                                                    <SelectContent>{PLANTS.map(p => <SelectItem key={p.name} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
+                                                                </Select>
+                                                            </td>
+                                                            <td className="px-1 py-1"><Input className="h-8 text-xs w-16 text-right" type="number" value={row.furnaceCount} onChange={(e) => updateParsedItem(idx, 'furnaceCount', Number(e.target.value))} /></td>
+                                                            <td className="px-1 py-1"><Input className="h-8 text-xs w-20 text-right" type="number" value={row.platformReserved ?? 0} onChange={(e) => updateParsedItem(idx, 'platformReserved', Number(e.target.value))} /></td>
+                                                            <td className="px-1 py-1"><Input className="h-8 text-xs w-16 text-right" type="number" value={row.overReservedTrips ?? 0} onChange={(e) => updateParsedItem(idx, 'overReservedTrips', Number(e.target.value))} /></td>
+                                                            <td className="px-1 py-1"><Input className="h-8 text-xs w-16 text-right" type="number" value={row.adjustedTrips ?? 0} onChange={(e) => updateParsedItem(idx, 'adjustedTrips', Number(e.target.value))} /></td>
+                                                            <td className="px-1 py-1"><Input className="h-8 text-xs w-20 text-right" type="number" value={row.actualIntake ?? 0} onChange={(e) => updateParsedItem(idx, 'actualIntake', Number(e.target.value))} /></td>
+                                                            <td className="px-1 py-1"><Input className="h-8 text-xs w-20 text-right" type="number" step="0.1" value={row.totalIntake} onChange={(e) => updateParsedItem(idx, 'totalIntake', Number(e.target.value))} /></td>
+                                                            <td className="px-1 py-1"><Input className="h-8 text-xs w-20 text-right" type="number" step="0.1" value={row.incinerationAmount} onChange={(e) => updateParsedItem(idx, 'incinerationAmount', Number(e.target.value))} /></td>
+                                                            <td className="px-1 py-1"><Input className="h-8 text-xs w-20 text-right" type="number" step="0.1" value={row.pitStorage} onChange={(e) => updateParsedItem(idx, 'pitStorage', Number(e.target.value))} /></td>
+                                                            <td className="px-1 py-1"><Input className="h-8 text-xs w-20 text-right" type="number" step="0.1" value={row.pitCapacity} onChange={(e) => updateParsedItem(idx, 'pitCapacity', Number(e.target.value))} /></td>
+                                                            <td className="px-1 py-1 text-right text-xs">
                                                                 {row.pitStorage && row.pitCapacity
                                                                     ? ((row.pitStorage / row.pitCapacity) * 100).toFixed(1)
                                                                     : '0'}%

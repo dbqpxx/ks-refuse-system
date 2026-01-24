@@ -91,14 +91,25 @@ export default function ReportsPage() {
                 recordCount: filtered.length
             });
 
-            // Auto-set date range if filter is empty on first load (optional UX improvement)
-            if (!filter.startDate && !filter.endDate && allData.length > 0) {
-                const dates = allData.map(d => d.date).sort();
+            // 預設日期範圍：最近 30 天
+            if (!filter.startDate && !filter.endDate) {
+                const end = new Date();
+                const start = new Date();
+                start.setDate(start.getDate() - 30);
+
+                const startStr = start.toISOString().split('T')[0];
+                const endStr = end.toISOString().split('T')[0];
+
                 setFilter(prev => ({
                     ...prev,
-                    startDate: dates[0],
-                    endDate: dates[dates.length - 1]
+                    startDate: startStr,
+                    endDate: endStr
                 }));
+                // 重新過濾當前已抓取的資料
+                filtered = allData.filter(d => d.date >= startStr && d.date <= endStr);
+                if (filter.plantName && filter.plantName !== 'all') {
+                    filtered = filtered.filter(d => d.plantName === filter.plantName);
+                }
             }
 
         } catch (error) {
@@ -505,7 +516,7 @@ export default function ReportsPage() {
                                 {intakeChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <ComposedChart data={intakeChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                                            <ComposedChart data={intakeChartData} margin={{ top: 20, right: 40, left: -20, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -526,6 +537,7 @@ export default function ReportsPage() {
                                                     tick={{ fontSize: 11 }}
                                                     tickLine={false}
                                                     axisLine={{ stroke: '#374151' }}
+                                                    label={{ value: '總量 (噸)', angle: 90, position: 'insideRight', offset: 10, fontSize: 11, fill: '#374151' }}
                                                 />
                                                 <Tooltip
                                                     contentStyle={{
@@ -578,7 +590,7 @@ export default function ReportsPage() {
                                 {incinerationChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <ComposedChart data={incinerationChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                                            <ComposedChart data={incinerationChartData} margin={{ top: 20, right: 40, left: -20, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -599,6 +611,7 @@ export default function ReportsPage() {
                                                     tick={{ fontSize: 11 }}
                                                     tickLine={false}
                                                     axisLine={{ stroke: '#374151' }}
+                                                    label={{ value: '總量 (噸)', angle: 90, position: 'insideRight', offset: 10, fontSize: 11, fill: '#374151' }}
                                                 />
                                                 <Tooltip
                                                     contentStyle={{

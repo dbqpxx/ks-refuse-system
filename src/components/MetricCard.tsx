@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -40,6 +41,34 @@ export default function MetricCard({
     trend,
     variant = 'default',
 }: MetricCardProps) {
+    const [displayValue, setDisplayValue] = useState<string | number>(typeof value === 'number' ? 0 : value);
+
+    useEffect(() => {
+        if (typeof value !== 'number') {
+            setDisplayValue(value);
+            return;
+        }
+
+        let start = 0;
+        const end = value;
+        const duration = 1000;
+        const stepTime = 20;
+        const totalSteps = duration / stepTime;
+        const increment = end / totalSteps;
+
+        const timer = setInterval(() => {
+            start += increment;
+            if (start >= end) {
+                setDisplayValue(end);
+                clearInterval(timer);
+            } else {
+                setDisplayValue(Math.floor(start));
+            }
+        }, stepTime);
+
+        return () => clearInterval(timer);
+    }, [value]);
+
     const renderTrend = () => {
         if (!trend || trend.value === null) return null;
 
@@ -82,8 +111,8 @@ export default function MetricCard({
             </CardHeader>
             <CardContent>
                 <div className="flex items-baseline gap-2">
-                    <span className="text-2xl sm:text-3xl font-bold tracking-tight">
-                        {value}
+                    <span className={`text-2xl sm:text-3xl font-bold tracking-tight ${iconVariantStyles[variant]}`}>
+                        {typeof displayValue === 'number' ? displayValue.toLocaleString() : displayValue}
                     </span>
                     {unit && (
                         <span className="text-sm font-medium text-muted-foreground">

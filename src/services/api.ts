@@ -51,6 +51,24 @@ export const apiService = {
         }
     },
 
+    async updatePlantData(data: PlantData): Promise<void> {
+        const response = await fetch(`${API_URL}?sheet=Data&method=PUT`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...data, updatedAt: new Date().toISOString() }),
+        });
+        if (!response.ok) throw new Error('Failed to update plant data');
+    },
+
+    async deletePlantData(id: string): Promise<void> {
+        const response = await fetch(`${API_URL}?sheet=Data&method=DELETE`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id }),
+        });
+        if (!response.ok) throw new Error('Failed to delete plant data');
+    },
+
     /**
      * Users Management
      */

@@ -42,7 +42,7 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
 
     const config = plantColorConfig[plantName];
 
-    const isStorageHigh = pitStoragePercentage > 100;
+    const isStorageHigh = pitStoragePercentage > 110;
     const isStorageWarning = pitStoragePercentage > 80 && pitStoragePercentage <= 100;
     const isStorageMedium = pitStoragePercentage > 60 && pitStoragePercentage <= 80;
 
@@ -54,6 +54,21 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
     };
 
     const statusColor = getStatusColor();
+
+    // Calculate Days to Full (DToF)
+    // Formula: (Capacity - Current Storage) / (Daily Intake - Daily Incineration)
+    const dailyNetChange = totalIntake - incinerationAmount;
+    const remainingCapacity = pitCapacity - pitStorage;
+    const dtof = dailyNetChange > 0 ? Math.floor(remainingCapacity / dailyNetChange) : null;
+
+    const getDtofColor = (days: number) => {
+        if (days <= 2) return 'text-red-600 font-black animate-pulse';
+        if (days <= 5) return 'text-orange-600 font-bold';
+        return 'text-green-600';
+    };
+
+    // Efficiency Index: Incineration per Furnace
+    const efficiencyIndex = furnaceCount > 0 ? (incinerationAmount / furnaceCount).toFixed(0) : null;
 
     const gradientClasses = {
         red: 'from-red-500 to-red-600',
@@ -70,24 +85,40 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
     };
 
     return (
-        <Card className={`relative transition-all duration-200 hover:shadow-lg border-l-4 ${config.bg} ${config.border} dark:bg-card dark:border-border`}>
+        <Card className={`relative transition-all duration-200 hover:shadow-lg border-l-4 ${config.bg} ${config.border} dark:bg-card dark:border-border ${isStorageHigh ? 'animate-glow-red ring-2 ring-red-500/50' : ''}`}>
             <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                    <CardTitle className={`text-lg font-bold flex items-center gap-3 ${config.text}`}>
-                        <div className={`p-2 rounded-xl ${config.iconBg} ${config.color} shadow-sm`}>
-                            <Flame className="h-6 w-6" fill="currentColor" />
+                <div className="flex items-center justify-between gap-2 overflow-hidden">
+                    <CardTitle className={`text-lg font-bold flex items-center gap-2 ${config.text} truncate`}>
+                        <div className={`p-1.5 rounded-lg ${config.iconBg} ${config.color} shadow-sm shrink-0`}>
+                            <Flame className="h-5 w-5 animate-flicker" fill="currentColor" />
                         </div>
-                        {plantName}
+                        <span className="truncate">{plantName}</span>
                     </CardTitle>
                     {isStorageHigh && (
-                        <div className="flex items-center gap-1 text-red-600 animate-pulse">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span className="text-xs font-medium">超量</span>
+                        <div className="px-1 rounded-[2px] bg-red-600 text-white text-[7px] font-black animate-pulse flex items-center gap-0.5 shadow-sm shrink-0 whitespace-nowrap leading-tight">
+                            <AlertTriangle className="h-2 w-2" />
+                            <span>容量超限</span>
                         </div>
                     )}
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
+                {/* Decision Metric: DToF */}
+                <div className="bg-white/50 dark:bg-black/20 rounded-lg px-3 py-2 flex items-center justify-between border border-dashed border-muted-foreground/20">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">預計滿坑天數</span>
+                    <span className={`text-sm ${dtof !== null ? getDtofColor(dtof) : 'text-muted-foreground'}`}>
+                        {dtof !== null ? `${dtof} 天` : '穩定 (負增長)'}
+                    </span>
+                </div>
+
+                {/* Performance Insight: Efficiency */}
+                <div className="bg-white/50 dark:bg-black/20 rounded-lg px-3 py-2 flex items-center justify-between border border-dashed border-muted-foreground/20">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">單爐平均效能</span>
+                    <span className="text-xs font-semibold text-primary">
+                        {efficiencyIndex ? `${efficiencyIndex} 噸/爐` : '--'}
+                    </span>
+                </div>
+
                 {/* Main Metrics Grid */}
                 <div className="grid grid-cols-2 gap-3">
                     <div className="bg-background/80 rounded-lg p-3 shadow-sm">

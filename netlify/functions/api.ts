@@ -136,15 +136,16 @@ export const handler: Handler = async (event, context) => {
                 return { statusCode: 400, body: 'Missing request body' };
             }
 
-            const payload = JSON.parse(event.body);
-            const isUpdate = searchParams.get('method') === 'PUT' || payload._method === 'PUT';
+            const payload = JSON.parse(event.body!);
+            const method = searchParams.get('method') || payload._method;
+            const isUpdate = method === 'PUT';
+            const isDelete = method === 'DELETE';
 
             // Ensure the sheet exists before we try to interact with it
             await ensureSheetExists(sheets, spreadsheetId, sheetName);
 
-            if (isUpdate) {
-                // Update existing record (find by ID)
-                // 1. Fetch all rows
+            if (isUpdate || isDelete) {
+                // Find existing record (find by ID)
                 const currentRows = await sheets.spreadsheets.values.get({
                     spreadsheetId,
                     range: `${sheetName}!A:O`,
@@ -155,32 +156,62 @@ export const handler: Handler = async (event, context) => {
                 const idIndex = headers.indexOf('id');
 
                 if (idIndex === -1) {
-                    return { statusCode: 500, body: 'ID column not found for update' };
+                    return { statusCode: 500, body: 'ID column not found for operation' };
                 }
 
-                const itemToUpdate = Array.isArray(payload) ? payload[0] : payload;
-                const rowIndex = rows.findIndex(r => r[idIndex] === itemToUpdate.id);
+                const itemToOp = Array.isArray(payload) ? payload[0] : payload;
+                const rowIndex = rows.findIndex(r => r[idIndex] === itemToOp.id);
 
                 if (rowIndex === -1) {
-                    return { statusCode: 404, body: 'Record not found for update' };
+                    return { statusCode: 404, body: 'Record not found' };
                 }
 
-                // Prepare new row values
-                const newRowValues = currentSchema.map(key => itemToUpdate[key] ?? '');
+                if (isDelete) {
+                    // Delete row using batchUpdate (deleteDimension)
+                    // Get sheet ID first
+                    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+                    const sheetId = spreadsheet.data.sheets?.find((s: any) => s.properties.title === sheetName)?.properties.sheetId;
 
-                await sheets.spreadsheets.values.update({
-                    spreadsheetId,
-                    range: `${sheetName}!A${rowIndex + 1}`,
-                    valueInputOption: 'USER_ENTERED',
-                    requestBody: {
-                        values: [newRowValues],
-                    },
-                });
+                    await sheets.spreadsheets.batchUpdate({
+                        spreadsheetId,
+                        requestBody: {
+                            requests: [{
+                                deleteDimension: {
+                                    range: {
+                                        sheetId,
+                                        dimension: 'ROWS',
+                                        startIndex: rowIndex,
+                                        endIndex: rowIndex + 1
+                                    }
+                                }
+                            }]
+                        }
+                    });
 
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({ message: 'Updated successfully' }),
-                };
+                    return {
+                        statusCode: 200,
+                        body: JSON.stringify({ message: 'Deleted successfully' }),
+                    };
+                }
+
+                if (isUpdate) {
+                    // Prepare new row values
+                    const newRowValues = currentSchema.map(key => itemToOp[key] ?? '');
+
+                    await sheets.spreadsheets.values.update({
+                        spreadsheetId,
+                        range: `${sheetName}!A${rowIndex + 1}`,
+                        valueInputOption: 'USER_ENTERED',
+                        requestBody: {
+                            values: [newRowValues],
+                        },
+                    });
+
+                    return {
+                        statusCode: 200,
+                        body: JSON.stringify({ message: 'Updated successfully' }),
+                    };
+                }
             }
 
             // Normal append
