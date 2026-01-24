@@ -496,16 +496,16 @@ export default function ReportsPage() {
                 <TabsContent value="chart">
                     <div className="space-y-6">
                         {/* Intake Trend Chart */}
-                        <Card>
-                            <CardHeader>
+                        <Card className="-mx-4 sm:mx-0 rounded-none sm:rounded-lg border-x-0 sm:border-x">
+                            <CardHeader className="px-4 sm:px-6">
                                 <CardTitle className="text-lg">📦 進廠量趨勢</CardTitle>
                                 <CardDescription>各廠區進廠量變化趨勢（公噸）</CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="px-2 sm:px-6">
                                 {intakeChartData.length > 0 ? (
-                                    <div className="h-72 sm:h-80">
+                                    <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <ComposedChart data={intakeChartData} margin={{ top: 10, right: 50, left: -10, bottom: 0 }}>
+                                            <ComposedChart data={intakeChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -570,16 +570,16 @@ export default function ReportsPage() {
                         </Card>
 
                         {/* Incineration Trend Chart */}
-                        <Card>
-                            <CardHeader>
+                        <Card className="-mx-4 sm:mx-0 rounded-none sm:rounded-lg border-x-0 sm:border-x">
+                            <CardHeader className="px-4 sm:px-6">
                                 <CardTitle className="text-lg">🔥 焚化量趨勢</CardTitle>
                                 <CardDescription>各廠區焚化量變化趨勢（公噸）</CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="px-2 sm:px-6">
                                 {incinerationChartData.length > 0 ? (
-                                    <div className="h-72 sm:h-80">
+                                    <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <ComposedChart data={incinerationChartData} margin={{ top: 10, right: 50, left: -10, bottom: 0 }}>
+                                            <ComposedChart data={incinerationChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -644,16 +644,16 @@ export default function ReportsPage() {
                         </Card>
 
                         {/* Pit Storage Trend Chart */}
-                        <Card>
-                            <CardHeader>
+                        <Card className="-mx-4 sm:mx-0 rounded-none sm:rounded-lg border-x-0 sm:border-x">
+                            <CardHeader className="px-4 sm:px-6">
                                 <CardTitle className="text-lg">📊 貯坑佔比趨勢</CardTitle>
                                 <CardDescription>各廠區貯坑佔比變化趨勢（%）</CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="px-2 sm:px-6">
                                 {pitStorageChartData.length > 0 ? (
-                                    <div className="h-72 sm:h-80">
+                                    <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={pitStorageChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                            <LineChart data={pitStorageChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -707,16 +707,16 @@ export default function ReportsPage() {
                         </Card>
 
                         {/* Per-Furnace Incineration Trend Chart */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">⚡ 每爐焚化量趨勢（負載變化）</CardTitle>
-                                <CardDescription>各廠區每爐平均焚化量變化趨勢（公噸/爐）</CardDescription>
+                        <Card className="-mx-4 sm:mx-0 rounded-none sm:rounded-lg border-x-0 sm:border-x">
+                            <CardHeader className="px-4 sm:px-6">
+                                <CardTitle className="text-lg">⚡ 每爐焚化量趨勢</CardTitle>
+                                <CardDescription>各廠區每爐平均焚化量（公噸/爐）</CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="px-2 sm:px-6">
                                 {perFurnaceChartData.length > 0 ? (
-                                    <div className="h-72 sm:h-80">
+                                    <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={perFurnaceChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                            <BarChart data={perFurnaceChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -776,16 +776,16 @@ export default function ReportsPage() {
                         </Card>
 
                         {/* Cumulative Trend Chart */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">📈 累積進廠量、焚化量與平均貯坑佔比趨勢</CardTitle>
-                                <CardDescription>查詢期間的累積總量與平均貯坑佔比變化</CardDescription>
+                        <Card className="-mx-4 sm:mx-0 rounded-none sm:rounded-lg border-x-0 sm:border-x">
+                            <CardHeader className="px-4 sm:px-6">
+                                <CardTitle className="text-lg">📈 累積進廠量與焚化量趨勢</CardTitle>
+                                <CardDescription>查詢期間的累積總量與平均貯坑佔比</CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="px-2 sm:px-6">
                                 {cumulativeChartData.length > 0 ? (
-                                    <div className="h-72 sm:h-80">
+                                    <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <ComposedChart data={cumulativeChartData} margin={{ top: 10, right: 50, left: -10, bottom: 0 }}>
+                                            <ComposedChart data={cumulativeChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
