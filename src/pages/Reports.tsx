@@ -501,11 +501,11 @@ export default function ReportsPage() {
                                 <CardTitle className="text-lg">📦 進廠量趨勢</CardTitle>
                                 <CardDescription>各廠區進廠量變化趨勢（公噸）</CardDescription>
                             </CardHeader>
-                            <CardContent className="px-2 sm:px-6">
+                            <CardContent className="px-0 sm:px-6">
                                 {intakeChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <ComposedChart data={intakeChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                                            <ComposedChart data={intakeChartData} margin={{ top: 10, right: 0, left: -35, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
@@ -574,11 +574,11 @@ export default function ReportsPage() {
                                 <CardTitle className="text-lg">🔥 焚化量趨勢</CardTitle>
                                 <CardDescription>各廠區焚化量變化趨勢（公噸）</CardDescription>
                             </CardHeader>
-                            <CardContent className="px-2 sm:px-6">
+                            <CardContent className="px-0 sm:px-6">
                                 {incinerationChartData.length > 0 ? (
                                     <div className="h-72 sm:h-80 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <ComposedChart data={incinerationChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                                            <ComposedChart data={incinerationChartData} margin={{ top: 10, right: 0, left: -35, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis
                                                     dataKey="displayDate"
