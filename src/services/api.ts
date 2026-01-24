@@ -18,15 +18,16 @@ export const apiService = {
         // We need to ensure numbers are actually numbers
         return (json.data || []).map((item: any) => ({
             ...item,
-            furnaceCount: Number(item.furnaceCount),
-            totalIntake: Number(item.totalIntake),
-            incinerationAmount: Number(item.incinerationAmount),
-            pitStorage: Number(item.pitStorage),
-            pitCapacity: Number(item.pitCapacity),
-            platformReserved: item.platformReserved ? Number(item.platformReserved) : undefined,
-            actualIntake: item.actualIntake ? Number(item.actualIntake) : undefined,
-            overReservedTrips: item.overReservedTrips ? Number(item.overReservedTrips) : undefined,
-            adjustedTrips: item.adjustedTrips ? Number(item.adjustedTrips) : undefined,
+            // Helper to parse numbers safely (handles "1,234" strings)
+            furnaceCount: typeof item.furnaceCount === 'string' ? Number(item.furnaceCount.replace(/,/g, '')) : Number(item.furnaceCount),
+            totalIntake: typeof item.totalIntake === 'string' ? Number(item.totalIntake.replace(/,/g, '')) : Number(item.totalIntake),
+            incinerationAmount: typeof item.incinerationAmount === 'string' ? Number(item.incinerationAmount.replace(/,/g, '')) : Number(item.incinerationAmount),
+            pitStorage: typeof item.pitStorage === 'string' ? Number(item.pitStorage.replace(/,/g, '')) : Number(item.pitStorage),
+            pitCapacity: typeof item.pitCapacity === 'string' ? Number(item.pitCapacity.replace(/,/g, '')) : Number(item.pitCapacity),
+            platformReserved: item.platformReserved ? (typeof item.platformReserved === 'string' ? Number(item.platformReserved.replace(/,/g, '')) : Number(item.platformReserved)) : undefined,
+            actualIntake: item.actualIntake ? (typeof item.actualIntake === 'string' ? Number(item.actualIntake.replace(/,/g, '')) : Number(item.actualIntake)) : undefined,
+            overReservedTrips: item.overReservedTrips ? (typeof item.overReservedTrips === 'string' ? Number(item.overReservedTrips.replace(/,/g, '')) : Number(item.overReservedTrips)) : undefined,
+            adjustedTrips: item.adjustedTrips ? (typeof item.adjustedTrips === 'string' ? Number(item.adjustedTrips.replace(/,/g, '')) : Number(item.adjustedTrips)) : undefined,
         })).filter((item: PlantData) =>
             !isNaN(item.totalIntake) &&
             !isNaN(item.incinerationAmount) &&

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Trash2, Search, AlertCircle } from 'lucide-react';
-import { storageService } from '@/services/storage';
+import { apiService } from '@/services/api';
 import type { PlantData } from '@/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -24,9 +24,13 @@ export default function DataManagementPage() {
         filterData();
     }, [data, searchTerm, dateFilter]);
 
-    const loadData = () => {
-        const allData = storageService.getPlantData();
-        setData(allData);
+    const loadData = async () => {
+        try {
+            const allData = await apiService.fetchPlantData();
+            setData(allData);
+        } catch (error) {
+            console.error("Failed to load data", error);
+        }
     };
 
     const filterData = () => {
@@ -48,28 +52,17 @@ export default function DataManagementPage() {
     };
 
     const handleDelete = (id: string) => {
-        // Use window.confirm for individual delete to keep it simple
-        if (window.confirm('確定要刪除此筆資料嗎？')) {
-            if (storageService.deletePlantData(id)) {
-                loadData();
-            }
-        }
+        // Implement delete via API later if needed
+        alert("刪除功能尚未實作於 Google Sheets 版本");
     };
 
     const handleClearAll = () => {
-        storageService.clearAllData();
-        loadData();
+        alert("清除功能尚未實作於 Google Sheets 版本");
         setIsClearDialogOpen(false);
     };
 
     const handleRepairDates = () => {
-        const result = storageService.repairCorruptedDates();
-        if (result.repaired > 0) {
-            alert(`已修復 ${result.repaired} 筆日期資料！\n\n修復內容：\n${result.details.slice(0, 10).join('\n')}${result.details.length > 10 ? `\n...及其他 ${result.details.length - 10} 筆` : ''}`);
-            loadData();
-        } else {
-            alert('沒有發現需要修復的日期資料。');
-        }
+        alert("修復功能不需要於 Google Sheets 版本");
     };
 
     return (
