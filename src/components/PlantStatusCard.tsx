@@ -126,7 +126,6 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
                                 className="w-2 h-4 rounded-sm bg-gray-200 dark:bg-gray-600"
                             />
                         ))}
-                        <span className="text-sm font-semibold ml-2">{furnaceCount} / {maxFurnaces} 座</span>
                     </div>
                 </div>
             </CardContent>
