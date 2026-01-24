@@ -32,6 +32,28 @@ async function getSheetsInstance() {
     return google.sheets({ version: 'v4', auth: authClient as any });
 }
 
+// Helper to ensure a sheet (tab) exists, create if not
+async function ensureSheetExists(sheets: any, spreadsheetId: string, sheetName: string) {
+    try {
+        const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+        const sheetExists = (spreadsheet.data.sheets || []).some((s: any) => s.properties.title === sheetName);
+
+        if (!sheetExists) {
+            console.log(`Creating sheet: ${sheetName}`);
+            await sheets.spreadsheets.batchUpdate({
+                spreadsheetId,
+                requestBody: {
+                    requests: [
+                        { addSheet: { properties: { title: sheetName } } }
+                    ]
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error ensuring sheet exists:', error);
+    }
+}
+
 export const handler: Handler = async (event, context) => {
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
     const searchParams = new URLSearchParams(event.queryStringParameters as any);
@@ -64,34 +86,46 @@ export const handler: Handler = async (event, context) => {
 
         // Handle GET request (Fetch data)
         if (event.httpMethod === 'GET') {
-            const response = await sheets.spreadsheets.values.get({
-                spreadsheetId,
-                range: `${sheetName}!A:O`, // Extended range to be safe
-            });
+            try {
+                const response = await sheets.spreadsheets.values.get({
+                    spreadsheetId,
+                    range: `${sheetName}!A:O`, // Extended range to be safe
+                });
 
-            const rows = response.data.values;
-            if (!rows || rows.length === 0) {
+                const rows = response.data.values;
+                if (!rows || rows.length === 0) {
+                    return {
+                        statusCode: 200,
+                        body: JSON.stringify({ data: [] }),
+                    };
+                }
+
+                const headers = rows[0];
+                // If headers don't match, return empty to be safe or try to map
+                const data = rows.slice(1).map((row) => {
+                    const obj: any = {};
+                    headers.forEach((header, index) => {
+                        if (header) obj[header] = row[index];
+                    });
+                    return obj;
+                });
+
                 return {
                     statusCode: 200,
-                    body: JSON.stringify({ data: [] }),
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data }),
                 };
+            } catch (e: any) {
+                // If sheet is missing or range is invalid, return empty data
+                if (e.message?.includes('range') || e.code === 400) {
+                    console.log(`Sheet "${sheetName}" not found or empty, returning empty data.`);
+                    return {
+                        statusCode: 200,
+                        body: JSON.stringify({ data: [] }),
+                    };
+                }
+                throw e;
             }
-
-            const headers = rows[0];
-            // If headers don't match, return empty to be safe or try to map
-            const data = rows.slice(1).map((row) => {
-                const obj: any = {};
-                headers.forEach((header, index) => {
-                    if (header) obj[header] = row[index];
-                });
-                return obj;
-            });
-
-            return {
-                statusCode: 200,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data }),
-            };
         }
 
         // Handle POST request (Add/Update data)
@@ -102,6 +136,9 @@ export const handler: Handler = async (event, context) => {
 
             const payload = JSON.parse(event.body);
             const isUpdate = searchParams.get('method') === 'PUT' || payload._method === 'PUT';
+
+            // Ensure the sheet exists before we try to interact with it
+            await ensureSheetExists(sheets, spreadsheetId, sheetName);
 
             if (isUpdate) {
                 // Update existing record (find by ID)
