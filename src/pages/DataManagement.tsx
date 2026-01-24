@@ -51,7 +51,7 @@ export default function DataManagementPage() {
         setFilteredData(result);
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = () => {
         // Implement delete via API later if needed
         alert("刪除功能尚未實作於 Google Sheets 版本");
     };
@@ -187,7 +187,7 @@ export default function DataManagementPage() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => handleDelete(item.id)}
+                                            onClick={() => handleDelete()}
                                             className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                         >
                                             <Trash2 className="h-4 w-4" />
