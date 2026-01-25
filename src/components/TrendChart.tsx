@@ -92,24 +92,18 @@ export default function TrendChart({ data, allHistoricalData }: TrendChartProps)
             }
             const baseline = sumWY / sumW;
 
-            // Calculate trend factor: recent 7 days vs historical 7-day average
-            const recent7Days = points.slice(-7);
-            const recentAvg = recent7Days.reduce((a, b) => a + b, 0) / recent7Days.length;
+            // Calculate trend factor using SAME WEEKDAY comparison
+            // Compare recent same-weekday performance vs baseline
+            const recentSameWeekdays = targetDayPoints.slice(-3);
+            const recentSameAvg = recentSameWeekdays.length > 0
+                ? recentSameWeekdays.reduce((a, b) => a + b, 0) / recentSameWeekdays.length
+                : baseline;
+            const trendFactor = baseline > 0 ? recentSameAvg / baseline : 1.0;
 
-            // Historical average: use all data but with decay weighting
-            const decay = 0.98;
-            let histSumW = 0, histSumWY = 0;
-            for (let i = 0; i < n; i++) {
-                const weight = Math.pow(decay, n - 1 - i);
-                histSumW += weight;
-                histSumWY += weight * points[i];
-            }
-            const historicalAvg = histSumWY / histSumW;
+            // Safety cap: limit to ±30% deviation
+            const cappedTrend = Math.max(0.7, Math.min(1.3, trendFactor));
 
-            const trendFactor = historicalAvg > 0 ? recentAvg / historicalAvg : 1.0;
-
-            // Apply trend to baseline
-            return Math.max(0, baseline * trendFactor);
+            return Math.max(0, baseline * cappedTrend);
         };
 
         for (let i = 1; i <= 3; i++) {
