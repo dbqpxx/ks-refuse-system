@@ -337,7 +337,7 @@ export default function TrendChart({ data, allHistoricalData }: TrendChartProps)
                                 tick={{ fontSize: 10 }}
                                 tickLine={false}
                                 axisLine={false}
-                                domain={[0, 150]}
+                                domain={['auto', 'auto']}
                                 tickFormatter={(value) => `${value}%`}
                                 width={35}
                             />
