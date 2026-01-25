@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Flame, TrendingUp, Gauge, Factory, Calendar, RefreshCw } from 'lucide-react';
+import { Gauge, Factory, Calendar, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import MetricCard from '@/components/MetricCard';
@@ -21,6 +21,12 @@ export default function DashboardPage() {
         incinerationTrend: number | null;
         pitStorageTrend: number | null;
         ratioTrend: number | null;
+        averages?: {
+            avgIntake: number;
+            avgIncineration: number;
+            avgPitStoragePct: number;
+            avgRatio: number;
+        };
     } | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [loading, setLoading] = useState(true);
@@ -195,11 +201,18 @@ export default function DashboardPage() {
             const avgRatio = total7DayIncineration > 0 ? (total7DayIntake / total7DayIncineration) * 100 : 0;
 
             // Set Trends: (Today - Average) / Average
+            // Set Trends: (Today - Average) / Average
             setWeeklyTrend({
                 intakeTrend: avgIntake > 0 ? ((totalIntake - avgIntake) / avgIntake) * 100 : null,
                 incinerationTrend: avgIncineration > 0 ? ((totalIncineration - avgIncineration) / avgIncineration) * 100 : null,
                 pitStorageTrend: avgPitStoragePct > 0 ? ((currentAvgPit - avgPitStoragePct) / avgPitStoragePct) * 100 : null,
-                ratioTrend: avgRatio > 0 ? ((intakeRatio - avgRatio) / avgRatio) * 100 : null
+                ratioTrend: avgRatio > 0 ? ((intakeRatio - avgRatio) / avgRatio) * 100 : null,
+                averages: {
+                    avgIntake,
+                    avgIncineration,
+                    avgPitStoragePct,
+                    avgRatio
+                }
             });
 
             // Update Summary with extra global stats
@@ -291,9 +304,16 @@ export default function DashboardPage() {
                             title="總進廠量"
                             value={summary?.totalIntake.toLocaleString() || '--'}
                             unit="噸"
-                            icon={TrendingUp}
                             description="全市合計"
                             variant="blue"
+                            headerContent={
+                                <div className="text-right">
+                                    <div className="text-[10px] text-muted-foreground mr-1">7日均</div>
+                                    <div className="text-sm font-bold text-blue-600">
+                                        {Math.round(weeklyTrend?.averages?.avgIntake || 0).toLocaleString()}
+                                    </div>
+                                </div>
+                            }
                             trend={weeklyTrend?.intakeTrend !== null ? {
                                 value: weeklyTrend?.intakeTrend ?? null,
                                 // Logic: Increase (Positive) is BAD (Red/False), Decrease (Negative) is GOOD (Green/True)
@@ -305,9 +325,16 @@ export default function DashboardPage() {
                             title="總焚化量"
                             value={summary?.totalIncineration.toLocaleString() || '--'}
                             unit="噸"
-                            icon={Flame}
                             description="全市合計"
                             variant="red"
+                            headerContent={
+                                <div className="text-right">
+                                    <div className="text-[10px] text-muted-foreground mr-1">7日均</div>
+                                    <div className="text-sm font-bold text-red-600">
+                                        {Math.round(weeklyTrend?.averages?.avgIncineration || 0).toLocaleString()}
+                                    </div>
+                                </div>
+                            }
                             trend={weeklyTrend?.incinerationTrend !== null ? {
                                 value: weeklyTrend?.incinerationTrend ?? null,
                                 // Logic: Increase (Positive) is GOOD (Green/True), Decrease (Negative) is BAD (Red/False)
@@ -333,9 +360,16 @@ export default function DashboardPage() {
                             title="平均貯坑佔比"
                             value={avgPitStorage.toFixed(1)}
                             unit="%"
-                            icon={Gauge}
                             description="全市負荷"
                             variant={avgPitStorage > 80 ? 'red' : avgPitStorage > 60 ? 'yellow' : 'green'}
+                            headerContent={
+                                <div className="text-right">
+                                    <div className="text-[10px] text-muted-foreground mr-1">7日均</div>
+                                    <div className="text-sm font-bold text-amber-600">
+                                        {(weeklyTrend?.averages?.avgPitStoragePct || 0).toFixed(1)}%
+                                    </div>
+                                </div>
+                            }
                             trend={weeklyTrend?.pitStorageTrend !== null ? {
                                 value: weeklyTrend?.pitStorageTrend ?? null,
                                 // Logic: Increase (Positive) is BAD (Red/False)? Assuming Lower Pit Storage is better generally, or stable.
@@ -348,9 +382,27 @@ export default function DashboardPage() {
                             title="總剩餘容量"
                             value={(summary as any)?.remainingCapacity?.toLocaleString() || '--'}
                             unit="噸"
-                            icon={Factory}
-                            description="全市可用坑位"
+                            headerContent={
+                                <div className="flex flex-col items-end text-[10px] leading-tight select-none">
+                                    {summary?.plants.map(p => {
+                                        const remaining = (p.pitCapacity || 0) - (p.pitStorage || 0);
+                                        // Low capacity (e.g. < 20% or < 300t) -> Bad (Red). 
+                                        // But wait, actually "Remaining Capacity" Low is Bad?
+                                        // User: "顏色仍以紅綠來表達好壞" -> "Colors still use Red/Green to express Good/Bad".
+                                        // Convention: Low Remaining = Bad (Red). High Remaining = Good (Green).
+                                        // Let's assume < 15% is Red.
+                                        const isLow = p.pitCapacity ? (remaining / p.pitCapacity) < 0.15 : false;
+                                        return (
+                                            <div key={p.plantName} className={isLow ? 'text-red-500 font-bold' : 'text-green-600'}>
+                                                {p.plantName}: {remaining.toLocaleString()}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            }
+                            description="各廠剩餘量"
                             variant={(summary as any)?.remainingCapacity > 0 ? 'green' : 'red'}
+                            trend={undefined} // No trend for this card
                         />
                         <MetricCard
                             title="運轉爐數"

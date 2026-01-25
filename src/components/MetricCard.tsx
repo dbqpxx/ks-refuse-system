@@ -8,6 +8,7 @@ interface MetricCardProps {
     value: string | number;
     unit?: string;
     icon?: LucideIcon;
+    headerContent?: React.ReactNode; // New: Custom content for top-right (replaces icon)
     description?: string;
     trend?: {
         value: number | null;
@@ -39,6 +40,7 @@ export default function MetricCard({
     value,
     unit,
     icon: Icon,
+    headerContent,
     description,
     trend,
     variant = 'default',
@@ -113,7 +115,11 @@ export default function MetricCard({
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                     {title}
                 </CardTitle>
-                {Icon && (
+                {headerContent ? (
+                    <div className="text-right">
+                        {headerContent}
+                    </div>
+                ) : Icon && (
                     <div className={`p-2 rounded-lg bg-background/50 ${iconVariantStyles[variant]}`}>
                         <Icon className="h-4 w-4" />
                     </div>
@@ -139,6 +145,6 @@ export default function MetricCard({
                     {renderTrend()}
                 </div>
             </CardContent>
-        </Card>
+        </Card >
     );
 }
