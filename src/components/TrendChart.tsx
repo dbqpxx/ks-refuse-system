@@ -37,11 +37,7 @@ export default function TrendChart({ data, allHistoricalData }: TrendChartProps)
     // Use ALL historical data for prediction calculation
     const allIntakePoints = predictionSource.map(item => item.summary.totalIntake);
     const allIncinerationPoints = predictionSource.map(item => item.summary.totalIncineration);
-    const allPitPoints = predictionSource.map(item =>
-        item.summary.plants.length > 0
-            ? item.summary.plants.reduce((sum, p) => sum + p.pitStoragePercentage, 0) / item.summary.plants.length
-            : 0
-    );
+
 
     // Calculate predictions for next 3 days using ALL historical data
     const next3Days: any[] = [];
