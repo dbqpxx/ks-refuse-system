@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Factory, Calendar, RefreshCw } from 'lucide-react';
+import { Flame, TrendingUp, Gauge, Factory, Calendar, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import MetricCard from '@/components/MetricCard';
@@ -304,84 +304,48 @@ export default function DashboardPage() {
                             title="總進廠量"
                             value={summary?.totalIntake.toLocaleString() || '--'}
                             unit="噸"
-                            description="全市合計"
+                            icon={TrendingUp}
+                            description={`avg7: ${Math.round(weeklyTrend?.averages?.avgIntake || 0).toLocaleString()}`}
                             variant="blue"
-                            headerContent={
-                                <div className="text-right">
-                                    <div className="text-[10px] text-muted-foreground">avg7</div>
-                                    <div className="text-sm font-bold text-blue-600">
-                                        {Math.round(weeklyTrend?.averages?.avgIntake || 0).toLocaleString()}
-                                    </div>
-                                </div>
-                            }
                             trend={weeklyTrend?.intakeTrend !== null ? {
                                 value: weeklyTrend?.intakeTrend ?? null,
-                                // Logic: Increase (Positive) is BAD (Red/False), Decrease (Negative) is GOOD (Green/True)
-                                isGood: (weeklyTrend?.intakeTrend ?? 0) <= 0,
-                                label: "vs avg7"
+                                isGood: (weeklyTrend?.intakeTrend ?? 0) <= 0
                             } : undefined}
                         />
                         <MetricCard
                             title="總焚化量"
                             value={summary?.totalIncineration.toLocaleString() || '--'}
                             unit="噸"
-                            description="全市合計"
+                            icon={Flame}
+                            description={`avg7: ${Math.round(weeklyTrend?.averages?.avgIncineration || 0).toLocaleString()}`}
                             variant="red"
-                            headerContent={
-                                <div className="text-right">
-                                    <div className="text-[10px] text-muted-foreground">avg7</div>
-                                    <div className="text-sm font-bold text-red-600">
-                                        {Math.round(weeklyTrend?.averages?.avgIncineration || 0).toLocaleString()}
-                                    </div>
-                                </div>
-                            }
                             trend={weeklyTrend?.incinerationTrend !== null ? {
                                 value: weeklyTrend?.incinerationTrend ?? null,
-                                // Logic: Increase (Positive) is GOOD (Green/True), Decrease (Negative) is BAD (Red/False)
-                                isGood: (weeklyTrend?.incinerationTrend ?? 0) >= 0,
-                                label: "vs avg7"
+                                isGood: (weeklyTrend?.incinerationTrend ?? 0) >= 0
                             } : undefined}
                         />
                         <MetricCard
                             title="進焚比"
                             value={(summary as any)?.intakeRatio?.toFixed(1) || '--'}
                             unit="%"
-                            headerContent={
-                                <div className="text-right">
-                                    <div className="text-[10px] text-muted-foreground">avg7</div>
-                                    <div className="text-sm font-bold text-green-600">
-                                        {(weeklyTrend?.averages?.avgRatio || 0).toFixed(1)}%
-                                    </div>
-                                </div>
-                            }
-                            description="進廠/焚化比例"
+                            icon={Gauge}
+                            description={`avg7: ${(weeklyTrend?.averages?.avgRatio || 0).toFixed(1)}%`}
                             variant={(summary as any)?.intakeRatio > 100 ? 'red' : 'green'}
                             trend={weeklyTrend?.ratioTrend !== null ? {
                                 value: weeklyTrend?.ratioTrend ?? null,
-                                isGood: (weeklyTrend?.ratioTrend ?? 0) <= 0,
-                                label: "vs avg7"
+                                isGood: (weeklyTrend?.ratioTrend ?? 0) <= 0
                             } : undefined}
                         />
                         <MetricCard
-                            title="平均貯坑佔比"
+                            title="平均貮坑佔比"
                             value={avgPitStorage.toFixed(1)}
                             unit="%"
-                            description="全市負荷"
+                            icon={Gauge}
+                            description={`avg7: ${(weeklyTrend?.averages?.avgPitStoragePct || 0).toFixed(1)}%`}
                             variant={avgPitStorage > 80 ? 'red' : avgPitStorage > 60 ? 'yellow' : 'green'}
-                            headerContent={
-                                <div className="text-right">
-                                    <div className="text-[10px] text-muted-foreground">avg7</div>
-                                    <div className="text-sm font-bold text-amber-600">
-                                        {(weeklyTrend?.averages?.avgPitStoragePct || 0).toFixed(1)}%
-                                    </div>
-                                </div>
-                            }
                             trend={weeklyTrend?.pitStorageTrend !== null ? {
                                 value: weeklyTrend?.pitStorageTrend ?? null,
-                                // Logic: Increase (Positive) is BAD (Red/False)? Assuming Lower Pit Storage is better generally, or stable.
-                                // Let's mark Increase as BAD (Red) and Decrease as GOOD (Green) for load reduction.
-                                isGood: (weeklyTrend?.pitStorageTrend ?? 0) <= 0,
-                                label: "vs avg7"
+                                isGood: (weeklyTrend?.pitStorageTrend ?? 0) <= 0
                             } : undefined}
                         />
                         <MetricCard
