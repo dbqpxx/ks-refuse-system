@@ -48,6 +48,54 @@ export default function TrendChart({ data, allHistoricalData }: TrendChartProps)
     if (allIntakePoints.length >= 2 && historicalData.length > 0) {
         const lastDate = new Date(historicalData[historicalData.length - 1].date);
 
+        // Helper: Get available furnaces based on maintenance schedule
+        const getAvailableFurnaces = (date: Date): number => {
+            const month = date.getMonth() + 1; // 1-12
+            const day = date.getDate();
+
+            // Full operation periods (12 furnaces)
+            if ((month === 1 && day >= 15) || (month === 2 && day <= 15)) return 12;
+            if ((month === 5 && day >= 15) || (month >= 6 && month <= 9) || (month === 10 && day <= 15)) return 12;
+
+            // Plant-wide maintenance (9 furnaces, -3 per plant)
+            if (month === 10 && day >= 15 && day <= 31) return 9; // Plant 1
+            if (month === 11 && day >= 1 && day <= 15) return 9;  // Plant 2
+            if (month === 3 && day >= 15 && day <= 31) return 9;  // Plant 3
+            if (month === 4 && day >= 1 && day <= 15) return 9;   // Plant 4
+
+            // Rolling single-furnace maintenance (11 furnaces, -1)
+            // All other periods have continuous single-furnace maintenance
+            return 11;
+        };
+
+        // Capacity-based incineration prediction
+        const predictIncineration = (incinerationPoints: number[], steps: number): number => {
+            const n = incinerationPoints.length;
+            if (n < 7) return incinerationPoints[n - 1] || 0; // Fallback
+
+            // Calculate per-furnace capacity from recent 7 days
+            const recent7Days = incinerationPoints.slice(-7);
+            const recent7DaysTotal = recent7Days.reduce((a, b) => a + b, 0);
+
+            // Get furnace counts from recent 7 days (from historical data)
+            const recent7DaysData = predictionSource.slice(-7);
+            const avgRecentFurnaces = recent7DaysData.reduce((sum, item) =>
+                sum + (item.summary.furnacesRunning || 12), 0) / 7;
+
+            // Per-furnace daily capacity
+            const perFurnaceCapacity = avgRecentFurnaces > 0
+                ? recent7DaysTotal / avgRecentFurnaces / 7
+                : recent7DaysTotal / 12 / 7; // Fallback to 12 furnaces
+
+            // Calculate available furnaces for target date
+            const targetDate = new Date(lastDate);
+            targetDate.setDate(lastDate.getDate() + steps);
+            const availableFurnaces = getAvailableFurnaces(targetDate);
+
+            // Prediction = available furnaces × per-furnace capacity
+            return Math.max(0, availableFurnaces * perFurnaceCapacity);
+        };
+
         // Day-of-Week Aware Prediction with Trend Adjustment
         // Groups historical data by weekday and applies recent trend
         const predict = (points: number[], steps: number) => {
@@ -115,7 +163,7 @@ export default function TrendChart({ data, allHistoricalData }: TrendChartProps)
                 date: dateStr,
                 displayDate: formatDate(dateStr) + ' (預測)',
                 進廠量_預測: predict(allIntakePoints, i),
-                焚化量_預測: predict(allIncinerationPoints, i),
+                焚化量_預測: predictIncineration(allIncinerationPoints, i),
                 平均貯坑_預測: predict(allPitPoints, i),
                 isPrediction: true
             });
