@@ -93,15 +93,17 @@ export default function MetricCard({
 
 
         return (
-            <span className={`inline-flex items-center gap-1 text-xs font-medium ${colorClass}`}>
-                {isUp ? (
-                    <TrendingUp className="h-3 w-3" />
-                ) : (
-                    <TrendingDown className="h-3 w-3" />
-                )}
-                {Math.abs(trend.value).toFixed(1)}%
+            <span className={`inline-flex flex-col items-end text-xs font-medium ${colorClass}`}>
+                <span className="inline-flex items-center gap-1">
+                    {isUp ? (
+                        <TrendingUp className="h-3 w-3" />
+                    ) : (
+                        <TrendingDown className="h-3 w-3" />
+                    )}
+                    {Math.abs(trend.value).toFixed(1)}%
+                </span>
                 {trend.label && (
-                    <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                    <span className="text-[9px] text-muted-foreground font-normal">
                         {trend.label}
                     </span>
                 )}

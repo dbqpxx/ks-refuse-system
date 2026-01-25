@@ -389,7 +389,7 @@ export default function DashboardPage() {
                             value={(summary as any)?.remainingCapacity?.toLocaleString() || '--'}
                             unit="噸"
                             headerContent={
-                                <div className="flex items-center gap-1 flex-wrap justify-end">
+                                <div className="flex flex-col items-end gap-0.5">
                                     {summary?.plants.map(p => {
                                         const remaining = (p.pitCapacity || 0) - (p.pitStorage || 0);
                                         // Red = storage exceeds capacity (>100%), Green = has remaining capacity
