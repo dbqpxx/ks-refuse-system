@@ -13,6 +13,7 @@ interface MetricCardProps {
         value: number | null;
         isPositive?: boolean; // Deprecated: use standard value sign for direction
         isGood?: boolean; // New: explicitly sets Green (true) or Red (false)
+        label?: string; // New: explanatory text, e.g., "vs 7日平均"
     };
     variant?: 'default' | 'blue' | 'red' | 'green' | 'yellow';
 }
@@ -97,6 +98,11 @@ export default function MetricCard({
                     <TrendingDown className="h-3 w-3" />
                 )}
                 {Math.abs(trend.value).toFixed(1)}%
+                {trend.label && (
+                    <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                        {trend.label}
+                    </span>
+                )}
             </span>
         );
     };
