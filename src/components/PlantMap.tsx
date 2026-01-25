@@ -30,7 +30,7 @@ export default function PlantMap({ plants }: PlantMapProps) {
             <CardHeader className="pb-2 px-0 shrink-0">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-primary" />
-                    高屏區域廠分佈與壓力
+                    高雄市焚化廠區分佈與壓力
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 relative p-0 overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 flex items-center justify-center min-h-[280px]">
