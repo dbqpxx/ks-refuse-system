@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Gauge, Factory, Calendar, RefreshCw } from 'lucide-react';
+import { Factory, Calendar, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import MetricCard from '@/components/MetricCard';
@@ -318,7 +318,7 @@ export default function DashboardPage() {
                                 value: weeklyTrend?.intakeTrend ?? null,
                                 // Logic: Increase (Positive) is BAD (Red/False), Decrease (Negative) is GOOD (Green/True)
                                 isGood: (weeklyTrend?.intakeTrend ?? 0) <= 0,
-                                label: "vs 7日平均"
+                                label: "vs avg7"
                             } : undefined}
                         />
                         <MetricCard
@@ -339,7 +339,7 @@ export default function DashboardPage() {
                                 value: weeklyTrend?.incinerationTrend ?? null,
                                 // Logic: Increase (Positive) is GOOD (Green/True), Decrease (Negative) is BAD (Red/False)
                                 isGood: (weeklyTrend?.incinerationTrend ?? 0) >= 0,
-                                label: "vs 7日平均"
+                                label: "vs avg7"
                             } : undefined}
                         />
                         <MetricCard
@@ -370,7 +370,7 @@ export default function DashboardPage() {
                             variant={avgPitStorage > 80 ? 'red' : avgPitStorage > 60 ? 'yellow' : 'green'}
                             headerContent={
                                 <div className="text-right">
-                                    <div className="text-[10px] text-muted-foreground mr-1">7日均</div>
+                                    <div className="text-[10px] text-muted-foreground">avg7</div>
                                     <div className="text-sm font-bold text-amber-600">
                                         {(weeklyTrend?.averages?.avgPitStoragePct || 0).toFixed(1)}%
                                     </div>
@@ -381,7 +381,7 @@ export default function DashboardPage() {
                                 // Logic: Increase (Positive) is BAD (Red/False)? Assuming Lower Pit Storage is better generally, or stable.
                                 // Let's mark Increase as BAD (Red) and Decrease as GOOD (Green) for load reduction.
                                 isGood: (weeklyTrend?.pitStorageTrend ?? 0) <= 0,
-                                label: "vs 7日平均"
+                                label: "vs avg7"
                             } : undefined}
                         />
                         <MetricCard
