@@ -389,18 +389,15 @@ export default function DashboardPage() {
                             value={(summary as any)?.remainingCapacity?.toLocaleString() || '--'}
                             unit="噸"
                             headerContent={
-                                <div className="flex flex-col items-end text-[10px] leading-tight select-none">
+                                <div className="flex items-center gap-1 flex-wrap justify-end">
                                     {summary?.plants.map(p => {
                                         const remaining = (p.pitCapacity || 0) - (p.pitStorage || 0);
-                                        // Low capacity (e.g. < 20% or < 300t) -> Bad (Red). 
-                                        // But wait, actually "Remaining Capacity" Low is Bad?
-                                        // User: "顏色仍以紅綠來表達好壞" -> "Colors still use Red/Green to express Good/Bad".
-                                        // Convention: Low Remaining = Bad (Red). High Remaining = Good (Green).
-                                        // Let's assume < 15% is Red.
                                         const isLow = p.pitCapacity ? (remaining / p.pitCapacity) < 0.15 : false;
+                                        const firstChar = p.plantName?.charAt(0) || '?';
                                         return (
-                                            <div key={p.plantName} className={isLow ? 'text-red-500 font-bold' : 'text-green-600'}>
-                                                {p.plantName}: {remaining.toLocaleString()}
+                                            <div key={p.plantName} className="flex items-center gap-0.5" title={`${p.plantName}: ${remaining.toLocaleString()}噸`}>
+                                                <span className="text-[10px] text-muted-foreground">{firstChar}</span>
+                                                <span className={`w-2 h-2 rounded-full ${isLow ? 'bg-red-500' : 'bg-green-500'}`} />
                                             </div>
                                         );
                                     })}
