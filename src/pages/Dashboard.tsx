@@ -308,7 +308,7 @@ export default function DashboardPage() {
                             variant="blue"
                             headerContent={
                                 <div className="text-right">
-                                    <div className="text-[10px] text-muted-foreground mr-1">7日均</div>
+                                    <div className="text-[10px] text-muted-foreground">avg7</div>
                                     <div className="text-sm font-bold text-blue-600">
                                         {Math.round(weeklyTrend?.averages?.avgIntake || 0).toLocaleString()}
                                     </div>
@@ -329,7 +329,7 @@ export default function DashboardPage() {
                             variant="red"
                             headerContent={
                                 <div className="text-right">
-                                    <div className="text-[10px] text-muted-foreground mr-1">7日均</div>
+                                    <div className="text-[10px] text-muted-foreground">avg7</div>
                                     <div className="text-sm font-bold text-red-600">
                                         {Math.round(weeklyTrend?.averages?.avgIncineration || 0).toLocaleString()}
                                     </div>
@@ -346,14 +346,20 @@ export default function DashboardPage() {
                             title="進焚比"
                             value={(summary as any)?.intakeRatio?.toFixed(1) || '--'}
                             unit="%"
-                            icon={Gauge}
+                            headerContent={
+                                <div className="text-right">
+                                    <div className="text-[10px] text-muted-foreground">avg7</div>
+                                    <div className="text-sm font-bold text-green-600">
+                                        {(weeklyTrend?.averages?.avgRatio || 0).toFixed(1)}%
+                                    </div>
+                                </div>
+                            }
                             description="進廠/焚化比例"
                             variant={(summary as any)?.intakeRatio > 100 ? 'red' : 'green'}
                             trend={weeklyTrend?.ratioTrend !== null ? {
                                 value: weeklyTrend?.ratioTrend ?? null,
-                                // Logic: Ratio Increase is BAD (Red), Decrease is GOOD (Green)
                                 isGood: (weeklyTrend?.ratioTrend ?? 0) <= 0,
-                                label: "vs 7日平均"
+                                label: "vs avg7"
                             } : undefined}
                         />
                         <MetricCard
