@@ -48,29 +48,68 @@ export default function TrendChart({ data, allHistoricalData }: TrendChartProps)
     if (allIntakePoints.length >= 2 && historicalData.length > 0) {
         const lastDate = new Date(historicalData[historicalData.length - 1].date);
 
-        // Weighted Linear Regression - Recent data has higher weight
-        // Using exponential decay: weight = decay^(n-1-i), where decay = 0.95
+        // Day-of-Week Aware Prediction with Trend Adjustment
+        // Groups historical data by weekday and applies recent trend
         const predict = (points: number[], steps: number) => {
             const n = points.length;
-            const decay = 0.95; // Recent data weight decay factor
+            if (n < 7) return points[n - 1]; // Fallback: use last value if insufficient data
 
-            let sumW = 0, sumWX = 0, sumWY = 0, sumWXY = 0, sumWXX = 0;
+            // Determine target date and its weekday
+            const targetDate = new Date(lastDate);
+            targetDate.setDate(lastDate.getDate() + steps);
+            const targetWeekday = targetDate.getDay(); // 0=Sunday, 6=Saturday
+
+            // Group historical data by weekday
+            const weekdayData: { [key: number]: number[] } = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
             for (let i = 0; i < n; i++) {
-                // Higher weight for more recent data
-                const weight = Math.pow(decay, n - 1 - i);
-                sumW += weight;
-                sumWX += weight * i;
-                sumWY += weight * points[i];
-                sumWXY += weight * i * points[i];
-                sumWXX += weight * i * i;
+                const histDate = new Date(lastDate);
+                histDate.setDate(lastDate.getDate() - (n - 1 - i));
+                const weekday = histDate.getDay();
+                weekdayData[weekday].push(points[i]);
             }
 
-            const denominator = sumW * sumWXX - sumWX * sumWX;
-            if (denominator === 0) return sumWY / sumW; // Fallback to weighted average
+            // Calculate weighted baseline for target weekday
+            // Recent occurrences have higher weight (decay = 0.9 per week)
+            const targetDayPoints = weekdayData[targetWeekday];
+            if (targetDayPoints.length === 0) {
+                // Fallback: use overall weighted average if no same-weekday data
+                const decay = 0.95;
+                let sumW = 0, sumWY = 0;
+                for (let i = 0; i < n; i++) {
+                    const weight = Math.pow(decay, n - 1 - i);
+                    sumW += weight;
+                    sumWY += weight * points[i];
+                }
+                return sumWY / sumW;
+            }
 
-            const slope = (sumW * sumWXY - sumWX * sumWY) / denominator;
-            const intercept = (sumWY - slope * sumWX) / sumW;
-            return Math.max(0, slope * (n - 1 + steps) + intercept);
+            const weeklyDecay = 0.9; // Decay per occurrence (weekly)
+            let sumW = 0, sumWY = 0;
+            for (let i = 0; i < targetDayPoints.length; i++) {
+                const weight = Math.pow(weeklyDecay, targetDayPoints.length - 1 - i);
+                sumW += weight;
+                sumWY += weight * targetDayPoints[i];
+            }
+            const baseline = sumWY / sumW;
+
+            // Calculate trend factor: recent 7 days vs historical 7-day average
+            const recent7Days = points.slice(-7);
+            const recentAvg = recent7Days.reduce((a, b) => a + b, 0) / recent7Days.length;
+
+            // Historical average: use all data but with decay weighting
+            const decay = 0.98;
+            let histSumW = 0, histSumWY = 0;
+            for (let i = 0; i < n; i++) {
+                const weight = Math.pow(decay, n - 1 - i);
+                histSumW += weight;
+                histSumWY += weight * points[i];
+            }
+            const historicalAvg = histSumWY / histSumW;
+
+            const trendFactor = historicalAvg > 0 ? recentAvg / historicalAvg : 1.0;
+
+            // Apply trend to baseline
+            return Math.max(0, baseline * trendFactor);
         };
 
         for (let i = 1; i <= 3; i++) {
