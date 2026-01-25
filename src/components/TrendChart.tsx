@@ -154,17 +154,43 @@ export default function TrendChart({ data, allHistoricalData }: TrendChartProps)
             return Math.max(0, baseline * cappedTrend);
         };
 
+        // Get current pit storage state from last historical data
+        const lastHistoricalData = predictionSource[predictionSource.length - 1];
+        const currentAvgPitPct = lastHistoricalData.summary.plants.length > 0
+            ? lastHistoricalData.summary.plants.reduce((sum, p) => sum + p.pitStoragePercentage, 0) / lastHistoricalData.summary.plants.length
+            : 0;
+
+        // Calculate total pit capacity and current storage
+        const totalPitCapacity = lastHistoricalData.summary.plants.reduce((sum, p) => sum + (p.pitCapacity || 0), 0);
+        const currentPitStorage = totalPitCapacity * (currentAvgPitPct / 100);
+
+        // Track accumulated storage for each prediction day
+        let accumulatedStorage = currentPitStorage;
+
         for (let i = 1; i <= 3; i++) {
             const nextDate = new Date(lastDate);
             nextDate.setDate(lastDate.getDate() + i);
             const dateStr = nextDate.toISOString().split('T')[0];
 
+            // Predict intake and incineration for this day
+            const predictedIntake = predict(allIntakePoints, i);
+            const predictedIncineration = predictIncineration(allIncinerationPoints, i);
+
+            // Material balance: daily change = intake - incineration
+            const dailyChange = predictedIntake - predictedIncineration;
+            accumulatedStorage += dailyChange;
+
+            // Convert to percentage (with safety bounds 0-150%)
+            const predictedPitPct = totalPitCapacity > 0
+                ? Math.max(0, Math.min(150, (accumulatedStorage / totalPitCapacity) * 100))
+                : currentAvgPitPct;
+
             next3Days.push({
                 date: dateStr,
                 displayDate: formatDate(dateStr) + ' (預測)',
-                進廠量_預測: predict(allIntakePoints, i),
-                焚化量_預測: predictIncineration(allIncinerationPoints, i),
-                平均貯坑_預測: predict(allPitPoints, i),
+                進廠量_預測: predictedIntake,
+                焚化量_預測: predictedIncineration,
+                平均貯坑_預測: predictedPitPct,
                 isPrediction: true
             });
         }
