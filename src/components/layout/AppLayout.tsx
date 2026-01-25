@@ -116,34 +116,36 @@ export default function AppLayout() {
                         </Button>
                     </div>
                 </div>
-                {/* Mobile Bottom Navigation - Fixed */}
-                <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t shadow-lg">
-                    <nav className="flex items-center justify-around p-2 max-w-screen">
-                        {filteredNavItems.slice(0, 5).map((item) => {
-                            const Icon = item.icon;
-                            const isActive = location.pathname === item.href;
-                            return (
-                                <Link
-                                    key={item.href}
-                                    to={item.href}
-                                    className={cn(
-                                        "flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[10px] font-medium rounded-lg transition-all min-w-[52px]",
-                                        isActive
-                                            ? "bg-primary/15 text-primary scale-105"
-                                            : "text-muted-foreground active:scale-95"
-                                    )}
-                                >
-                                    <Icon className={cn("h-5 w-5 transition-transform", isActive && "scale-110")} />
-                                    <span className="truncate">{item.label}</span>
-                                </Link>
-                            );
-                        })}
-                    </nav>
-                </div>
+
             </header>
             <main className="container py-6 px-4 pb-24 md:pb-6">
                 <Outlet />
             </main>
+
+            {/* Mobile Bottom Navigation - Fixed */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t shadow-lg">
+                <nav className="flex items-center justify-around p-2 max-w-screen">
+                    {filteredNavItems.slice(0, 5).map((item) => {
+                        const Icon = item.icon;
+                        const isActive = location.pathname === item.href;
+                        return (
+                            <Link
+                                key={item.href}
+                                to={item.href}
+                                className={cn(
+                                    "flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[10px] font-medium rounded-lg transition-all min-w-[52px]",
+                                    isActive
+                                        ? "bg-primary/15 text-primary scale-105"
+                                        : "text-muted-foreground active:scale-95"
+                                )}
+                            >
+                                <Icon className={cn("h-5 w-5 transition-transform", isActive && "scale-110")} />
+                                <span className="truncate">{item.label}</span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+            </div>
         </div>
     );
 }
