@@ -167,14 +167,27 @@ export default function DashboardPage() {
             // Get data for the 7 day window ending on dateToLoad
             const sevenDayData = allData.filter(d => d.date >= sevenDaysAgoDateStr && d.date <= dateToLoad);
 
-            // Calculate Averages
-            const avgIntake = sevenDayData.length > 0 ? sevenDayData.reduce((sum, r) => sum + r.totalIntake, 0) / sevenDayData.length : 0;
-            const avgIncineration = sevenDayData.length > 0 ? sevenDayData.reduce((sum, r) => sum + r.incinerationAmount, 0) / sevenDayData.length : 0;
+            // Calculate Daily Totals for the 7-day window
+            const uniqueSevenDayDates = [...new Set(sevenDayData.map(d => d.date))];
 
-            // Avg Pit Storage
-            const avgPitStoragePct = sevenDayData.length > 0
-                ? sevenDayData.reduce((sum, r) => sum + (r.pitCapacity ? (r.pitStorage / r.pitCapacity) * 100 : 0), 0) / sevenDayData.length
-                : 0;
+            // Calculate Daily Totals for each day in the window
+            const dailyTotals = uniqueSevenDayDates.map(date => {
+                const dayRecords = sevenDayData.filter(d => d.date === date);
+                return {
+                    date,
+                    totalIntake: dayRecords.reduce((sum, r) => sum + r.totalIntake, 0),
+                    totalIncineration: dayRecords.reduce((sum, r) => sum + r.incinerationAmount, 0),
+                    // For Pit Storage, we want the average percentage across plants for that day
+                    dailyAvgPitPct: dayRecords.reduce((sum, r) => sum + (r.pitCapacity ? (r.pitStorage / r.pitCapacity) * 100 : 0), 0) / (dayRecords.length || 1)
+                };
+            });
+
+            // Calculate 7-Day Averages (Average of Daily Totals)
+            const daysCount = dailyTotals.length || 1;
+            const avgIntake = dailyTotals.reduce((sum, d) => sum + d.totalIntake, 0) / daysCount;
+            const avgIncineration = dailyTotals.reduce((sum, d) => sum + d.totalIncineration, 0) / daysCount;
+
+            const avgPitStoragePct = dailyTotals.reduce((sum, d) => sum + d.dailyAvgPitPct, 0) / daysCount;
 
             // Avg Ratio (Weighted Average: Total Intake / Total Incineration over 7 days)
             const total7DayIntake = sevenDayData.reduce((sum, r) => sum + r.totalIntake, 0);
