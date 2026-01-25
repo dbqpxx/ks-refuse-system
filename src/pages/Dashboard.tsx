@@ -193,9 +193,7 @@ export default function DashboardPage() {
         loadDashboardData();
     };
 
-    const handleToday = () => {
-        setSelectedDate(new Date().toISOString().split('T')[0]);
-    };
+
 
     // Calculate average pit storage
     const avgPitStorage = summary && summary.plants.length > 0
@@ -239,12 +237,9 @@ export default function DashboardPage() {
                             type="date"
                             value={selectedDate}
                             onChange={handleDateChange}
-                            className="w-40"
+                            className="w-40 text-sm"
                         />
                     </div>
-                    <Button variant="outline" size="sm" onClick={handleToday}>
-                        今日
-                    </Button>
                     <Button variant="ghost" size="icon" onClick={handleRefresh}>
                         <RefreshCw className="h-4 w-4" />
                     </Button>
@@ -355,9 +350,7 @@ export default function DashboardPage() {
                     <p className="text-muted-foreground mb-4">
                         請前往「數據輸入」頁面新增營運資料
                     </p>
-                    <Button variant="outline" onClick={handleToday}>
-                        切換至今日
-                    </Button>
+
                 </div>
             )}
         </div>
