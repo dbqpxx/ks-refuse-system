@@ -392,12 +392,13 @@ export default function DashboardPage() {
                                 <div className="flex items-center gap-1 flex-wrap justify-end">
                                     {summary?.plants.map(p => {
                                         const remaining = (p.pitCapacity || 0) - (p.pitStorage || 0);
-                                        const isLow = p.pitCapacity ? (remaining / p.pitCapacity) < 0.15 : false;
+                                        // Red = storage exceeds capacity (>100%), Green = has remaining capacity
+                                        const isOverCapacity = (p.pitStorage || 0) > (p.pitCapacity || 0);
                                         const firstChar = p.plantName?.charAt(0) || '?';
                                         return (
                                             <div key={p.plantName} className="flex items-center gap-0.5" title={`${p.plantName}: ${remaining.toLocaleString()}噸`}>
                                                 <span className="text-[10px] text-muted-foreground">{firstChar}</span>
-                                                <span className={`w-2 h-2 rounded-full ${isLow ? 'bg-red-500' : 'bg-green-500'}`} />
+                                                <span className={`w-2 h-2 rounded-full ${isOverCapacity ? 'bg-red-500' : 'bg-green-500'}`} />
                                             </div>
                                         );
                                     })}
