@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { LucideIcon } from 'lucide-react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface MetricCardProps {
     title: string;
@@ -11,7 +11,8 @@ interface MetricCardProps {
     description?: string;
     trend?: {
         value: number | null;
-        isPositive?: boolean;
+        isPositive?: boolean; // Deprecated: use standard value sign for direction
+        isGood?: boolean; // New: explicitly sets Green (true) or Red (false)
     };
     variant?: 'default' | 'blue' | 'red' | 'green' | 'yellow';
 }
@@ -72,27 +73,30 @@ export default function MetricCard({
     const renderTrend = () => {
         if (!trend || trend.value === null) return null;
 
-        const isPositive = trend.isPositive ?? trend.value >= 0;
-        const absValue = Math.abs(trend.value);
+        // Determine Direction (Up/Down) based on value
+        const isUp = trend.value >= 0;
 
-        if (absValue < 0.1) {
-            return (
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                    <Minus className="h-3 w-3" />
-                    持平
-                </span>
-            );
+        // Determine Color:
+        // 1. If isGood is provided: True -> Green, False -> Red
+        // 2. If isGood not provided: Use isPositive (legacy) or default (Up=Green)
+        let colorClass = 'text-green-600'; // Default Green
+        if (trend.isGood !== undefined) {
+            colorClass = trend.isGood ? 'text-green-600' : 'text-red-600';
+        } else {
+            // Legacy behavior fallback
+            const considerPositive = trend.isPositive ?? isUp;
+            colorClass = considerPositive ? 'text-green-600' : 'text-red-600';
         }
 
+
         return (
-            <span className={`inline-flex items-center gap-1 text-xs font-medium ${isPositive ? 'text-green-600' : 'text-red-600'
-                }`}>
-                {isPositive ? (
+            <span className={`inline-flex items-center gap-1 text-xs font-medium ${colorClass}`}>
+                {isUp ? (
                     <TrendingUp className="h-3 w-3" />
                 ) : (
                     <TrendingDown className="h-3 w-3" />
                 )}
-                {absValue.toFixed(1)}%
+                {Math.abs(trend.value).toFixed(1)}%
             </span>
         );
     };

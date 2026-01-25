@@ -15,7 +15,8 @@ export default function DashboardPage() {
     const [summary, setSummary] = useState<DailySummary | null>(null);
     const [trendData, setTrendData] = useState<{ date: string; summary: DailySummary }[]>([]);
     const [allTrendData, setAllTrendData] = useState<{ date: string; summary: DailySummary }[]>([]); // Full history for prediction
-    const [trend, setTrend] = useState<{
+    // Updated Trend Interface for Weekly Comparison
+    const [weeklyTrend, setWeeklyTrend] = useState<{
         intakeTrend: number | null;
         incinerationTrend: number | null;
         pitStorageTrend: number | null;
@@ -142,20 +143,11 @@ export default function DashboardPage() {
             setAllTrendData(allTrend);
 
             // Day over Day Trend
-            const sortedDates = [...new Set(allData.map(d => d.date))].sort();
-            const currentIndex = sortedDates.indexOf(dateToLoad);
-            const prevDateStr = currentIndex > 0 ? sortedDates[currentIndex - 1] : null;
+            // Day over Day Trend - REMOVED in favor of Weekly Trend
+            // Variables for daily trend filtered out to avoid unused variable warnings
 
-            const prevData = prevDateStr ? allData.filter(d => d.date === prevDateStr) : [];
-
-            const prevIntake = prevData.reduce((sum, r) => sum + r.totalIntake, 0);
-            const prevIncineration = prevData.reduce((sum, r) => sum + r.incinerationAmount, 0);
-
-            // Avg Pit Storage
+            // Avg Pit Storage (Current)
             const currentAvgPit = plants.length > 0 ? plants.reduce((sum, p) => sum + p.pitStoragePercentage, 0) / plants.length : 0;
-            const prevAvgPit = prevData.length > 0
-                ? prevData.reduce((sum, r) => sum + (r.pitCapacity ? (r.pitStorage / r.pitCapacity) * 100 : 0), 0) / prevData.length
-                : 0;
 
             // Global Metrics for Layout Fill
             const totalCapacity = dayData.reduce((sum, r) => sum + (r.pitCapacity || 0), 0);
@@ -163,10 +155,27 @@ export default function DashboardPage() {
             const remainingCapacity = totalCapacity - totalPitStorage;
             const intakeRatio = totalIncineration > 0 ? (totalIntake / totalIncineration) * 100 : 0;
 
-            setTrend({
-                intakeTrend: prevIntake > 0 ? ((totalIntake - prevIntake) / prevIntake) * 100 : null,
-                incinerationTrend: prevIncineration > 0 ? ((totalIncineration - prevIncineration) / prevIncineration) * 100 : null,
-                pitStorageTrend: prevAvgPit > 0 ? ((currentAvgPit - prevAvgPit) / prevAvgPit) * 100 : null
+            // Weekly Trend Calculation (vs 7 days ago)
+            const dateObj = new Date(dateToLoad);
+            dateObj.setDate(dateObj.getDate() - 7);
+            const oneWeekAgoDateStr = dateObj.toISOString().split('T')[0];
+
+            const weekAgoData = allData.filter(d => d.date === oneWeekAgoDateStr);
+            console.log(`Comparing ${dateToLoad} vs ${oneWeekAgoDateStr}`, { toLoad: dayData, weekAgo: weekAgoData });
+
+            const weekAgoIntake = weekAgoData.reduce((sum, r) => sum + r.totalIntake, 0);
+            const weekAgoIncineration = weekAgoData.reduce((sum, r) => sum + r.incinerationAmount, 0);
+
+            // Avg Pit Storage (Weekly)
+            const weekAgoAvgPit = weekAgoData.length > 0
+                ? weekAgoData.reduce((sum, r) => sum + (r.pitCapacity ? (r.pitStorage / r.pitCapacity) * 100 : 0), 0) / weekAgoData.length
+                : 0;
+
+            // Set Trends
+            setWeeklyTrend({
+                intakeTrend: weekAgoIntake > 0 ? ((totalIntake - weekAgoIntake) / weekAgoIntake) * 100 : null,
+                incinerationTrend: weekAgoIncineration > 0 ? ((totalIncineration - weekAgoIncineration) / weekAgoIncineration) * 100 : null,
+                pitStorageTrend: weekAgoAvgPit > 0 ? ((currentAvgPit - weekAgoAvgPit) / weekAgoAvgPit) * 100 : null
             });
 
             // Update Summary with extra global stats
@@ -261,7 +270,11 @@ export default function DashboardPage() {
                             icon={TrendingUp}
                             description="全市合計"
                             variant="blue"
-                            trend={trend?.intakeTrend !== null ? { value: trend?.intakeTrend ?? null } : undefined}
+                            trend={weeklyTrend?.intakeTrend !== null ? {
+                                value: weeklyTrend?.intakeTrend ?? null,
+                                // Logic: Increase (Positive) is BAD (Red/False), Decrease (Negative) is GOOD (Green/True)
+                                isGood: (weeklyTrend?.intakeTrend ?? 0) <= 0
+                            } : undefined}
                         />
                         <MetricCard
                             title="總焚化量"
@@ -270,7 +283,11 @@ export default function DashboardPage() {
                             icon={Flame}
                             description="全市合計"
                             variant="red"
-                            trend={trend?.incinerationTrend !== null ? { value: trend?.incinerationTrend ?? null } : undefined}
+                            trend={weeklyTrend?.incinerationTrend !== null ? {
+                                value: weeklyTrend?.incinerationTrend ?? null,
+                                // Logic: Increase (Positive) is GOOD (Green/True), Decrease (Negative) is BAD (Red/False)
+                                isGood: (weeklyTrend?.incinerationTrend ?? 0) >= 0
+                            } : undefined}
                         />
                         <MetricCard
                             title="進焚比"
@@ -287,9 +304,11 @@ export default function DashboardPage() {
                             icon={Gauge}
                             description="全市負荷"
                             variant={avgPitStorage > 80 ? 'red' : avgPitStorage > 60 ? 'yellow' : 'green'}
-                            trend={trend?.pitStorageTrend !== null ? {
-                                value: trend?.pitStorageTrend ?? null,
-                                isPositive: (trend?.pitStorageTrend ?? 0) < 0
+                            trend={weeklyTrend?.pitStorageTrend !== null ? {
+                                value: weeklyTrend?.pitStorageTrend ?? null,
+                                // Logic: Increase (Positive) is BAD (Red/False)? Assuming Lower Pit Storage is better generally, or stable.
+                                // Let's mark Increase as BAD (Red) and Decrease as GOOD (Green) for load reduction.
+                                isGood: (weeklyTrend?.pitStorageTrend ?? 0) <= 0
                             } : undefined}
                         />
                         <MetricCard
