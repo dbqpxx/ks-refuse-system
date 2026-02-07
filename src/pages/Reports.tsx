@@ -40,6 +40,7 @@ export default function ReportsPage() {
     const [rawData, setRawData] = useState<PlantData[]>([]); // Store unfiltered data for cumulative chart
     const [statistics, setStatistics] = useState<RangeStatistics | null>(null);
     const [showFullDetails, setShowFullDetails] = useState(false);
+    const [isManualQuery, setIsManualQuery] = useState(false);
 
     // Filter state - initialized with 1 month range using local time
     const [filter, setFilter] = useState<DataFilter>(() => {
@@ -114,6 +115,7 @@ export default function ReportsPage() {
     };
 
     const handleQuery = () => {
+        setIsManualQuery(true);
         loadData();
     };
 
@@ -225,14 +227,20 @@ export default function ReportsPage() {
 
     // Prepare cumulative trend chart data
     const cumulativeChartData = (() => {
-        // Determine the target year based on the filter end date or current date
-        const targetYear = filter.endDate ? new Date(filter.endDate).getFullYear() : new Date().getFullYear();
+        let sourceData: PlantData[] = [];
 
-        // Filter rawData for the target year
-        const yearData = rawData.filter(d => new Date(d.date).getFullYear() === targetYear);
+        if (isManualQuery) {
+            // Manual Query: Show trend for the specific period (starts accumulating from 0 at start of period)
+            sourceData = data;
+        } else {
+            // Default View: Show YTD (Jan 1 to Year End/Current)
+            // Determine target year from current filter end date (which defaults to today)
+            const targetYear = filter.endDate ? new Date(filter.endDate).getFullYear() : new Date().getFullYear();
+            sourceData = rawData.filter(d => new Date(d.date).getFullYear() === targetYear);
+        }
 
         // Group data by date first and calculate daily totals
-        const dailyTotals = yearData.reduce((acc, record) => {
+        const dailyTotals = sourceData.reduce((acc, record) => {
             const pitPercentage = record.pitCapacity > 0 ? (record.pitStorage / record.pitCapacity) * 100 : 0;
             const existingDate = acc.find(item => item.date === record.date);
             if (existingDate) {
