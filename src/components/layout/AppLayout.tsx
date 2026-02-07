@@ -11,7 +11,8 @@ import {
     LogOut,
     User as UserIcon,
     Moon,
-    Sun
+    Sun,
+    Wrench
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,10 +21,12 @@ const navItems = [
     { href: "/", label: "總覽", icon: LayoutDashboard, roles: ['admin', 'user'] },
     { href: "/input", label: "數據輸入", icon: PenTool, roles: ['admin'] },
     { href: "/report", label: "報表查詢", icon: BarChart3, roles: ['admin', 'user'] },
+    { href: "/downtime", label: "停機管理", icon: Wrench, roles: ['admin'] },
     { href: "/settings", label: "設定", icon: Settings, roles: ['admin'] },
     { href: "/users", label: "用戶管理", icon: Users, roles: ['admin'] },
     { href: "/data", label: "資料管理", icon: Database, roles: ['admin'] },
 ];
+
 
 export default function AppLayout() {
     const location = useLocation();

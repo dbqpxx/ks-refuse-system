@@ -95,3 +95,19 @@ export const PLANTS: Plant[] = [
     { name: '仁武廠', defaultCapacity: 800, maxFurnaces: 2, standardPerFurnace: 425 },
     { name: '岡山廠', defaultCapacity: 900, maxFurnaces: 3, standardPerFurnace: 373 },
 ];
+
+// Downtime types
+export type DowntimeType = '計畫歲修' | '臨時停機';
+
+// Downtime record for scheduled/unscheduled furnace outages
+export interface DowntimeRecord {
+    id: string;
+    plantName: PlantName;
+    furnaceNumber: number; // 爐號 (1, 2, 3, 4...)
+    downtimeType: DowntimeType;
+    startDateTime: string; // ISO datetime
+    endDateTime: string;   // ISO datetime (expected end)
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+}

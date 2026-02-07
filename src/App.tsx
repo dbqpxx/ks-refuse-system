@@ -6,6 +6,7 @@ import ReportsPage from "@/pages/Reports";
 import SettingsPage from "@/pages/Settings";
 import LoginPage from "@/pages/Login";
 import DataManagementPage from "@/pages/DataManagement";
+import DowntimeManagementPage from "@/pages/DowntimeManagement";
 
 
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -31,6 +32,7 @@ function App() {
                 <Route path="/data" element={<DataManagementPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/users" element={<UserManagementPage />} />
+                <Route path="/downtime" element={<DowntimeManagementPage />} />
               </Route>
             </Route>
           </Route>

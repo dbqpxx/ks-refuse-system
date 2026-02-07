@@ -1,4 +1,4 @@
-import type { PlantData, User } from '@/types';
+import type { PlantData, User, DowntimeRecord } from '@/types';
 
 // Use relative URL which will be proxied by Netlify (dev and prod)
 const API_URL = '/api';
@@ -107,5 +107,51 @@ export const apiService = {
             body: JSON.stringify({ ...user, updatedAt: new Date().toISOString() }),
         });
         if (!response.ok) throw new Error('Failed to update user');
+    },
+
+    // --- Downtime Management ---
+
+    async fetchDowntimeRecords(): Promise<DowntimeRecord[]> {
+        const response = await fetch(`${API_URL}?sheet=Downtime`);
+        if (!response.ok) throw new Error('Failed to fetch downtime records');
+        const json = await response.json();
+        return (json.data || []).map((item: any) => ({
+            ...item,
+            furnaceNumber: Number(item.furnaceNumber || 1),
+        }));
+    },
+
+    async saveDowntimeRecord(data: Omit<DowntimeRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+        const payload: DowntimeRecord = {
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            ...data,
+        };
+
+        const response = await fetch(`${API_URL}?sheet=Downtime`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (!response.ok) throw new Error('Failed to save downtime record');
+    },
+
+    async updateDowntimeRecord(data: DowntimeRecord): Promise<void> {
+        const response = await fetch(`${API_URL}?sheet=Downtime&method=PUT`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...data, updatedAt: new Date().toISOString() }),
+        });
+        if (!response.ok) throw new Error('Failed to update downtime record');
+    },
+
+    async deleteDowntimeRecord(id: string): Promise<void> {
+        const response = await fetch(`${API_URL}?sheet=Downtime&method=DELETE`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id }),
+        });
+        if (!response.ok) throw new Error('Failed to delete downtime record');
     }
 };
