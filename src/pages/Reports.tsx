@@ -37,6 +37,7 @@ const PLANT_COLORS: Record<string, string> = {
 export default function ReportsPage() {
     const [activeTab, setActiveTab] = useState('table');
     const [data, setData] = useState<PlantData[]>([]);
+    const [rawData, setRawData] = useState<PlantData[]>([]); // Store unfiltered data for cumulative chart
     const [statistics, setStatistics] = useState<RangeStatistics | null>(null);
     const [showFullDetails, setShowFullDetails] = useState(false);
 
@@ -58,6 +59,7 @@ export default function ReportsPage() {
     const loadData = async () => {
         try {
             const allData = await apiService.fetchPlantData();
+            setRawData(allData);
 
             // Client-side filtering
             let filtered = allData;
@@ -91,11 +93,11 @@ export default function ReportsPage() {
                 recordCount: filtered.length
             });
 
-            // 預設日期範圍：最近 30 天
+            // 預設日期範圍：最近 1 個月
             if (!filter.startDate && !filter.endDate) {
                 const end = new Date();
-                const start = new Date();
-                start.setDate(start.getDate() - 30);
+                const start = new Date(end);
+                start.setMonth(start.getMonth() - 1); // Default to last 1 month
 
                 const startStr = start.toISOString().split('T')[0];
                 const endStr = end.toISOString().split('T')[0];
@@ -229,8 +231,14 @@ export default function ReportsPage() {
 
     // Prepare cumulative trend chart data
     const cumulativeChartData = (() => {
+        // Determine the target year based on the filter end date or current date
+        const targetYear = filter.endDate ? new Date(filter.endDate).getFullYear() : new Date().getFullYear();
+
+        // Filter rawData for the target year
+        const yearData = rawData.filter(d => new Date(d.date).getFullYear() === targetYear);
+
         // Group data by date first and calculate daily totals
-        const dailyTotals = data.reduce((acc, record) => {
+        const dailyTotals = yearData.reduce((acc, record) => {
             const pitPercentage = record.pitCapacity > 0 ? (record.pitStorage / record.pitCapacity) * 100 : 0;
             const existingDate = acc.find(item => item.date === record.date);
             if (existingDate) {
