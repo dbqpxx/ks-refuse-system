@@ -169,7 +169,9 @@ export default function DowntimeManagementPage() {
         : records.filter(r => r.plantName === filterPlant);
 
     const formatLocalDateTime = (isoString: string) => {
+        if (!isoString) return '-';
         const d = new Date(isoString);
+        if (isNaN(d.getTime())) return '-';
         return d.toLocaleString('zh-TW', {
             year: 'numeric',
             month: '2-digit',
@@ -179,15 +181,30 @@ export default function DowntimeManagementPage() {
         });
     };
 
+    // Status logic: use end of today as reference for prediction purposes
+    // (since today's data is being predicted, stoppage affects today's capacity)
+    const getStatusReferenceDate = () => {
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        return today;
+    };
+
     const isActive = (record: DowntimeRecord) => {
-        const now = new Date();
+        const refDate = getStatusReferenceDate();
         const start = new Date(record.startDateTime);
         const end = new Date(record.endDateTime);
-        return now >= start && now <= end;
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+        // Active if start <= today's end AND end >= today's start (overlaps with today)
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        return start <= refDate && end >= todayStart;
     };
 
     const isFuture = (record: DowntimeRecord) => {
-        return new Date(record.startDateTime) > new Date();
+        const todayEnd = getStatusReferenceDate();
+        const start = new Date(record.startDateTime);
+        if (isNaN(start.getTime())) return false;
+        return start > todayEnd;
     };
 
     if (loading) {
