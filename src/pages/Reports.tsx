@@ -41,11 +41,24 @@ export default function ReportsPage() {
     const [statistics, setStatistics] = useState<RangeStatistics | null>(null);
     const [showFullDetails, setShowFullDetails] = useState(false);
 
-    // Filter state - initialized with empty dates, will be set from storage
-    const [filter, setFilter] = useState<DataFilter>({
-        startDate: '',
-        endDate: '',
-        plantName: 'all',
+    // Filter state - initialized with 1 month range using local time
+    const [filter, setFilter] = useState<DataFilter>(() => {
+        const end = new Date();
+        const start = new Date(end);
+        start.setMonth(start.getMonth() - 1);
+
+        const toLocalYMD = (date: Date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        return {
+            startDate: toLocalYMD(start),
+            endDate: toLocalYMD(end),
+            plantName: 'all',
+        };
     });
 
     // Initialize date range from stored data and load initial data
@@ -93,26 +106,7 @@ export default function ReportsPage() {
                 recordCount: filtered.length
             });
 
-            // 預設日期範圍：最近 1 個月
-            if (!filter.startDate && !filter.endDate) {
-                const end = new Date();
-                const start = new Date(end);
-                start.setMonth(start.getMonth() - 1); // Default to last 1 month
 
-                const startStr = start.toISOString().split('T')[0];
-                const endStr = end.toISOString().split('T')[0];
-
-                setFilter(prev => ({
-                    ...prev,
-                    startDate: startStr,
-                    endDate: endStr
-                }));
-                // 重新過濾當前已抓取的資料
-                filtered = allData.filter(d => d.date >= startStr && d.date <= endStr);
-                if (filter.plantName && filter.plantName !== 'all') {
-                    filtered = filtered.filter(d => d.plantName === filter.plantName);
-                }
-            }
 
         } catch (error) {
             console.error("Failed to load report data", error);
