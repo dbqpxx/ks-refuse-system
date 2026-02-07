@@ -11,14 +11,15 @@ import {
     Area,
     AreaChart,
 } from 'recharts';
-import type { DailySummary } from '@/types';
+import type { DailySummary, DowntimeRecord } from '@/types';
 
 interface TrendChartProps {
     data: { date: string; summary: DailySummary }[];
     allHistoricalData?: { date: string; summary: DailySummary }[]; // Full data for prediction
+    activeDowntimes?: DowntimeRecord[]; // Downtime records affecting predictions
 }
 
-export default function TrendChart({ data, allHistoricalData }: TrendChartProps) {
+export default function TrendChart({ data, allHistoricalData, activeDowntimes = [] }: TrendChartProps) {
     // Use allHistoricalData for prediction if available, otherwise use data
     const predictionSource = allHistoricalData || data;
 
@@ -44,24 +45,40 @@ export default function TrendChart({ data, allHistoricalData }: TrendChartProps)
     if (allIntakePoints.length >= 2 && historicalData.length > 0) {
         const lastDate = new Date(historicalData[historicalData.length - 1].date);
 
-        // Helper: Get available furnaces based on maintenance schedule
+        // Helper: Get available furnaces based on maintenance schedule AND active downtimes
         const getAvailableFurnaces = (date: Date): number => {
             const month = date.getMonth() + 1; // 1-12
             const day = date.getDate();
 
+            // Base available furnaces from maintenance schedule
+            let baseFurnaces = 12; // Default: full operation
+
             // Full operation periods (12 furnaces)
-            if ((month === 1 && day >= 15) || (month === 2 && day <= 15)) return 12;
-            if ((month === 5 && day >= 15) || (month >= 6 && month <= 9) || (month === 10 && day <= 15)) return 12;
-
+            if ((month === 1 && day >= 15) || (month === 2 && day <= 15)) baseFurnaces = 12;
+            else if ((month === 5 && day >= 15) || (month >= 6 && month <= 9) || (month === 10 && day <= 15)) baseFurnaces = 12;
             // Plant-wide maintenance (9 furnaces, -3 per plant)
-            if (month === 10 && day >= 15 && day <= 31) return 9; // Plant 1
-            if (month === 11 && day >= 1 && day <= 15) return 9;  // Plant 2
-            if (month === 3 && day >= 15 && day <= 31) return 9;  // Plant 3
-            if (month === 4 && day >= 1 && day <= 15) return 9;   // Plant 4
+            else if (month === 10 && day >= 15 && day <= 31) baseFurnaces = 9; // Plant 1
+            else if (month === 11 && day >= 1 && day <= 15) baseFurnaces = 9;  // Plant 2
+            else if (month === 3 && day >= 15 && day <= 31) baseFurnaces = 9;  // Plant 3
+            else if (month === 4 && day >= 1 && day <= 15) baseFurnaces = 9;   // Plant 4
+            // Rolling single-furnace maintenance (11 furnaces)
+            else baseFurnaces = 11;
 
-            // Rolling single-furnace maintenance (11 furnaces, -1)
-            // All other periods have continuous single-furnace maintenance
-            return 11;
+            // Count furnaces stopped due to active downtimes on this date
+            const dayStart = new Date(date);
+            dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(date);
+            dayEnd.setHours(23, 59, 59, 999);
+
+            const stoppedFurnaceCount = activeDowntimes.filter(d => {
+                const start = new Date(d.startDateTime);
+                const end = new Date(d.endDateTime);
+                // Overlaps if start <= dayEnd AND end >= dayStart
+                return start <= dayEnd && end >= dayStart;
+            }).length;
+
+            // Subtract stopped furnaces from available
+            return Math.max(0, baseFurnaces - stoppedFurnaceCount);
         };
 
         // Capacity-based incineration prediction

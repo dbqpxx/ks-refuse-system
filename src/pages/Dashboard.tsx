@@ -464,7 +464,7 @@ export default function DashboardPage() {
 
             {/* Trend Chart - Full Width */}
             {trendData.length > 1 && (
-                <TrendChart data={trendData} allHistoricalData={allTrendData} />
+                <TrendChart data={trendData} allHistoricalData={allTrendData} activeDowntimes={activeDowntimes} />
             )}
 
             {/* Pit Storage Overview */}
