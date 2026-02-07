@@ -337,7 +337,7 @@ export default function DashboardPage() {
                             } : undefined}
                         />
                         <MetricCard
-                            title="平均貮坑佔比"
+                            title="平均貯坑容量佔比"
                             value={avgPitStorage.toFixed(1)}
                             unit="%"
                             icon={Gauge}

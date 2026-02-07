@@ -43,13 +43,12 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
     const config = plantColorConfig[plantName];
 
     const isStorageHigh = pitStoragePercentage > 110;
-    const isStorageWarning = pitStoragePercentage > 80 && pitStoragePercentage <= 100;
-    const isStorageMedium = pitStoragePercentage > 60 && pitStoragePercentage <= 80;
 
     const getStatusColor = () => {
-        if (isStorageHigh) return 'red';
-        if (isStorageWarning) return 'orange';
-        if (isStorageMedium) return 'yellow';
+        if (pitStoragePercentage > 110) return 'purple';
+        if (pitStoragePercentage > 100) return 'red';
+        if (pitStoragePercentage > 90) return 'orange';
+        if (pitStoragePercentage > 80) return 'yellow';
         return 'green';
     };
 
@@ -75,6 +74,7 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
         orange: 'from-orange-500 to-orange-600',
         yellow: 'from-yellow-500 to-yellow-600',
         green: 'from-green-500 to-green-600',
+        purple: 'from-purple-500 to-purple-600',
     };
 
     const textClasses = {
@@ -82,6 +82,7 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
         orange: 'text-orange-700',
         yellow: 'text-yellow-700',
         green: 'text-green-700',
+        purple: 'text-purple-700',
     };
 
     return (
@@ -163,7 +164,7 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
                     {pitStoragePercentage > 100 && (
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden mt-1">
                             <div
-                                className="h-1.5 rounded-full bg-gradient-to-r from-red-600 to-red-700 animate-pulse"
+                                className={`h-1.5 rounded-full bg-gradient-to-r ${gradientClasses[statusColor as keyof typeof gradientClasses]} animate-pulse`}
                                 style={{ width: `${Math.min(pitStoragePercentage - 100, 50)}%` }}
                             />
                         </div>
