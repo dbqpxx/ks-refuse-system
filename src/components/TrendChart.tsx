@@ -45,25 +45,10 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
     if (allIntakePoints.length >= 2 && historicalData.length > 0) {
         const lastDate = new Date(historicalData[historicalData.length - 1].date);
 
-        // Helper: Get available furnaces based on maintenance schedule AND active downtimes
-        // Returns a fractional value representing effective furnace-days (e.g., 11.5 means 11.5 furnace-days of capacity)
+        // Helper: Get available furnaces for a prediction date (base 13 minus downtimes)
+        // Returns a fractional value representing effective furnace-days
         const getAvailableFurnaces = (date: Date): number => {
-            const month = date.getMonth() + 1; // 1-12
-            const day = date.getDate();
-
-            // Base available furnaces from maintenance schedule
-            let baseFurnaces = 13; // Default: full operation (4 plants × 3-4 furnaces)
-
-            // Full operation periods (13 furnaces)
-            if ((month === 1 && day >= 15) || (month === 2 && day <= 15)) baseFurnaces = 13;
-            else if ((month === 5 && day >= 15) || (month >= 6 && month <= 9) || (month === 10 && day <= 15)) baseFurnaces = 13;
-            // Plant-wide maintenance (10 furnaces, -3 per plant)
-            else if (month === 10 && day >= 15 && day <= 31) baseFurnaces = 10;
-            else if (month === 11 && day >= 1 && day <= 15) baseFurnaces = 10;
-            else if (month === 3 && day >= 15 && day <= 31) baseFurnaces = 10;
-            else if (month === 4 && day >= 1 && day <= 15) baseFurnaces = 10;
-            // Rolling single-furnace maintenance (12 furnaces)
-            else baseFurnaces = 12;
+            const baseFurnaces = 13; // Full operation: 4 plants × ~3.25 furnaces average
 
             // Calculate proportional hours stopped due to active downtimes
             const dayStart = new Date(date);
@@ -92,30 +77,36 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
             // Convert stopped furnace-hours to stopped furnace-days (fraction of day)
             const stoppedFurnaceDays = stoppedFurnaceHours / totalDayHours;
 
-            // Subtract stopped furnace-days from available (allow fractional result)
+            // Subtract stopped furnace-days from base furnaces
             return Math.max(0, baseFurnaces - stoppedFurnaceDays);
         };
 
-        // Capacity-based incineration prediction
+        // Capacity-based incineration prediction using actual historical data
+        // Uses cumulative average until 7 days, then 7-day moving average
         const predictIncineration = (incinerationPoints: number[], steps: number): number => {
             const n = incinerationPoints.length;
-            if (n < 7) return incinerationPoints[n - 1] || 0; // Fallback
+            if (n < 1) return 0; // No data available
 
-            // Calculate per-furnace capacity from recent 7 days
-            const recent7Days = incinerationPoints.slice(-7);
-            const recent7DaysTotal = recent7Days.reduce((a, b) => a + b, 0);
+            // Determine how many days to use (min of available days and 7)
+            const daysToUse = Math.min(n, 7);
+            const recentDays = incinerationPoints.slice(-daysToUse);
+            const recentDaysTotal = recentDays.reduce((a, b) => a + b, 0);
 
-            // Get furnace counts from recent 7 days (from historical data)
-            const recent7DaysData = predictionSource.slice(-7);
-            const avgRecentFurnaces = recent7DaysData.reduce((sum, item) =>
-                sum + (item.summary.furnacesRunning || 13), 0) / 7;
+            // Get actual furnace counts from historical data for the same period
+            const recentDaysData = predictionSource.slice(-daysToUse);
 
-            // Per-furnace daily capacity (7-day moving average)
-            const perFurnaceCapacity = avgRecentFurnaces > 0
-                ? recent7DaysTotal / avgRecentFurnaces / 7
-                : recent7DaysTotal / 13 / 7; // Fallback to 13 furnaces
+            // Calculate total furnace-days from actual running furnaces
+            const totalFurnaceDays = recentDaysData.reduce((sum, item) => {
+                // Use actual running furnaces, fallback to 13 if not available
+                return sum + (item.summary.furnacesRunning || 13);
+            }, 0);
 
-            // Calculate available furnaces for target date
+            // Per-furnace daily capacity = total incineration / total furnace-days
+            const perFurnaceCapacity = totalFurnaceDays > 0
+                ? recentDaysTotal / totalFurnaceDays
+                : recentDaysTotal / (daysToUse * 13); // Fallback
+
+            // Calculate available furnaces for target date (considering downtimes)
             const targetDate = new Date(lastDate);
             targetDate.setDate(lastDate.getDate() + steps);
             const availableFurnaces = getAvailableFurnaces(targetDate);
