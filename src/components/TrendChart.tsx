@@ -46,6 +46,7 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
         const lastDate = new Date(historicalData[historicalData.length - 1].date);
 
         // Helper: Get available furnaces based on maintenance schedule AND active downtimes
+        // Returns a fractional value representing effective furnace-days (e.g., 11.5 means 11.5 furnace-days of capacity)
         const getAvailableFurnaces = (date: Date): number => {
             const month = date.getMonth() + 1; // 1-12
             const day = date.getDate();
@@ -57,28 +58,42 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
             if ((month === 1 && day >= 15) || (month === 2 && day <= 15)) baseFurnaces = 12;
             else if ((month === 5 && day >= 15) || (month >= 6 && month <= 9) || (month === 10 && day <= 15)) baseFurnaces = 12;
             // Plant-wide maintenance (9 furnaces, -3 per plant)
-            else if (month === 10 && day >= 15 && day <= 31) baseFurnaces = 9; // Plant 1
-            else if (month === 11 && day >= 1 && day <= 15) baseFurnaces = 9;  // Plant 2
-            else if (month === 3 && day >= 15 && day <= 31) baseFurnaces = 9;  // Plant 3
-            else if (month === 4 && day >= 1 && day <= 15) baseFurnaces = 9;   // Plant 4
+            else if (month === 10 && day >= 15 && day <= 31) baseFurnaces = 9;
+            else if (month === 11 && day >= 1 && day <= 15) baseFurnaces = 9;
+            else if (month === 3 && day >= 15 && day <= 31) baseFurnaces = 9;
+            else if (month === 4 && day >= 1 && day <= 15) baseFurnaces = 9;
             // Rolling single-furnace maintenance (11 furnaces)
             else baseFurnaces = 11;
 
-            // Count furnaces stopped due to active downtimes on this date
+            // Calculate proportional hours stopped due to active downtimes
             const dayStart = new Date(date);
             dayStart.setHours(0, 0, 0, 0);
             const dayEnd = new Date(date);
             dayEnd.setHours(23, 59, 59, 999);
+            const totalDayHours = 24;
 
-            const stoppedFurnaceCount = activeDowntimes.filter(d => {
-                const start = new Date(d.startDateTime);
-                const end = new Date(d.endDateTime);
-                // Overlaps if start <= dayEnd AND end >= dayStart
-                return start <= dayEnd && end >= dayStart;
-            }).length;
+            // Calculate total stopped furnace-hours for this day
+            let stoppedFurnaceHours = 0;
+            activeDowntimes.forEach(d => {
+                const dtStart = new Date(d.startDateTime);
+                const dtEnd = new Date(d.endDateTime);
 
-            // Subtract stopped furnaces from available
-            return Math.max(0, baseFurnaces - stoppedFurnaceCount);
+                // Check if this downtime overlaps with the day
+                if (dtStart <= dayEnd && dtEnd >= dayStart) {
+                    // Calculate overlap hours
+                    const overlapStart = dtStart < dayStart ? dayStart : dtStart;
+                    const overlapEnd = dtEnd > dayEnd ? dayEnd : dtEnd;
+                    const overlapHours = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60);
+                    // Each downtime represents 1 furnace stopped for overlapHours
+                    stoppedFurnaceHours += Math.max(0, Math.min(totalDayHours, overlapHours));
+                }
+            });
+
+            // Convert stopped furnace-hours to stopped furnace-days (fraction of day)
+            const stoppedFurnaceDays = stoppedFurnaceHours / totalDayHours;
+
+            // Subtract stopped furnace-days from available (allow fractional result)
+            return Math.max(0, baseFurnaces - stoppedFurnaceDays);
         };
 
         // Capacity-based incineration prediction
