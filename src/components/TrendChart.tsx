@@ -52,18 +52,18 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
             const day = date.getDate();
 
             // Base available furnaces from maintenance schedule
-            let baseFurnaces = 12; // Default: full operation
+            let baseFurnaces = 13; // Default: full operation (4 plants × 3-4 furnaces)
 
-            // Full operation periods (12 furnaces)
-            if ((month === 1 && day >= 15) || (month === 2 && day <= 15)) baseFurnaces = 12;
-            else if ((month === 5 && day >= 15) || (month >= 6 && month <= 9) || (month === 10 && day <= 15)) baseFurnaces = 12;
-            // Plant-wide maintenance (9 furnaces, -3 per plant)
-            else if (month === 10 && day >= 15 && day <= 31) baseFurnaces = 9;
-            else if (month === 11 && day >= 1 && day <= 15) baseFurnaces = 9;
-            else if (month === 3 && day >= 15 && day <= 31) baseFurnaces = 9;
-            else if (month === 4 && day >= 1 && day <= 15) baseFurnaces = 9;
-            // Rolling single-furnace maintenance (11 furnaces)
-            else baseFurnaces = 11;
+            // Full operation periods (13 furnaces)
+            if ((month === 1 && day >= 15) || (month === 2 && day <= 15)) baseFurnaces = 13;
+            else if ((month === 5 && day >= 15) || (month >= 6 && month <= 9) || (month === 10 && day <= 15)) baseFurnaces = 13;
+            // Plant-wide maintenance (10 furnaces, -3 per plant)
+            else if (month === 10 && day >= 15 && day <= 31) baseFurnaces = 10;
+            else if (month === 11 && day >= 1 && day <= 15) baseFurnaces = 10;
+            else if (month === 3 && day >= 15 && day <= 31) baseFurnaces = 10;
+            else if (month === 4 && day >= 1 && day <= 15) baseFurnaces = 10;
+            // Rolling single-furnace maintenance (12 furnaces)
+            else baseFurnaces = 12;
 
             // Calculate proportional hours stopped due to active downtimes
             const dayStart = new Date(date);
@@ -108,12 +108,12 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
             // Get furnace counts from recent 7 days (from historical data)
             const recent7DaysData = predictionSource.slice(-7);
             const avgRecentFurnaces = recent7DaysData.reduce((sum, item) =>
-                sum + (item.summary.furnacesRunning || 12), 0) / 7;
+                sum + (item.summary.furnacesRunning || 13), 0) / 7;
 
-            // Per-furnace daily capacity
+            // Per-furnace daily capacity (7-day moving average)
             const perFurnaceCapacity = avgRecentFurnaces > 0
                 ? recent7DaysTotal / avgRecentFurnaces / 7
-                : recent7DaysTotal / 12 / 7; // Fallback to 12 furnaces
+                : recent7DaysTotal / 13 / 7; // Fallback to 13 furnaces
 
             // Calculate available furnaces for target date
             const targetDate = new Date(lastDate);
