@@ -20,6 +20,12 @@ import type { DowntimeRecord, DowntimeType, PlantName } from '@/types';
 import { PLANTS } from '@/types';
 import { Loader2, Plus, Pencil, Trash2, Wrench, AlertTriangle, Calendar } from 'lucide-react';
 
+// Helper to convert number to Chinese numeral
+const toChineseNumeral = (n: number): string => {
+    const numerals = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+    return numerals[n] || String(n);
+};
+
 type FormData = {
     plantName: PlantName;
     furnaceNumber: number;
@@ -244,7 +250,7 @@ export default function DowntimeManagementPage() {
                                 {filteredRecords.map((record) => (
                                     <TableRow key={record.id}>
                                         <TableCell className="font-medium">{record.plantName}</TableCell>
-                                        <TableCell>第 {record.furnaceNumber} 爐</TableCell>
+                                        <TableCell>{toChineseNumeral(record.furnaceNumber)}號爐</TableCell>
                                         <TableCell>
                                             <Badge variant={record.downtimeType === '計畫歲修' ? 'secondary' : 'destructive'} className="gap-1">
                                                 {record.downtimeType === '計畫歲修' ? (
@@ -335,7 +341,7 @@ export default function DowntimeManagementPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {Array.from({ length: getMaxFurnaces(formData.plantName) }, (_, i) => i + 1).map(n => (
-                                            <SelectItem key={n} value={String(n)}>第 {n} 爐</SelectItem>
+                                            <SelectItem key={n} value={String(n)}>{toChineseNumeral(n)}號爐</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>

@@ -92,7 +92,7 @@ export interface Plant {
 export const PLANTS: Plant[] = [
     { name: '中區廠', defaultCapacity: 1000, maxFurnaces: 3, standardPerFurnace: 225 },
     { name: '南區廠', defaultCapacity: 1200, maxFurnaces: 4, standardPerFurnace: 300 },
-    { name: '仁武廠', defaultCapacity: 800, maxFurnaces: 2, standardPerFurnace: 425 },
+    { name: '仁武廠', defaultCapacity: 800, maxFurnaces: 3, standardPerFurnace: 425 },
     { name: '岡山廠', defaultCapacity: 900, maxFurnaces: 3, standardPerFurnace: 373 },
 ];
 
