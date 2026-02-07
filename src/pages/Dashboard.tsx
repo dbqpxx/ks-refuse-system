@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Flame, TrendingUp, Gauge, Factory, Calendar, RefreshCw } from 'lucide-react';
+import { Flame, TrendingUp, Gauge, Factory, Calendar, RefreshCw, Wrench, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import MetricCard from '@/components/MetricCard';
 import PitStorageChart from '@/components/PitStorageChart';
 import PlantStatusCard from '@/components/PlantStatusCard';
@@ -9,7 +11,7 @@ import TrendChart from '@/components/TrendChart';
 import AlertHub from '@/components/AlertHub';
 import PlantMap from '@/components/PlantMap';
 import { apiService } from '@/services/api';
-import { PLANTS, type DailySummary } from '@/types';
+import { PLANTS, type DailySummary, type DowntimeRecord } from '@/types';
 
 export default function DashboardPage() {
     const [summary, setSummary] = useState<DailySummary | null>(null);
@@ -31,6 +33,7 @@ export default function DashboardPage() {
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [activeDowntimes, setActiveDowntimes] = useState<DowntimeRecord[]>([]);
 
     useEffect(() => {
         loadDashboardData();
@@ -88,6 +91,28 @@ export default function DashboardPage() {
                 }, 0),
                 plants
             });
+
+            // Fetch downtime records and filter for current date
+            try {
+                const downtimeRecords = await apiService.fetchDowntimeRecords();
+                // Filter downtimes that overlap with the selected date
+                const selectedDateObj = new Date(dateToLoad);
+                const selectedDayStart = new Date(selectedDateObj);
+                selectedDayStart.setHours(0, 0, 0, 0);
+                const selectedDayEnd = new Date(selectedDateObj);
+                selectedDayEnd.setHours(23, 59, 59, 999);
+
+                const activeForDate = downtimeRecords.filter(d => {
+                    const start = new Date(d.startDateTime);
+                    const end = new Date(d.endDateTime);
+                    // Overlaps if start <= day end AND end >= day start
+                    return start <= selectedDayEnd && end >= selectedDayStart;
+                });
+                setActiveDowntimes(activeForDate);
+            } catch (err) {
+                console.error('Failed to fetch downtime records:', err);
+                setActiveDowntimes([]);
+            }
 
             // Trend Data (Last 7 days)
             const uniqueDates = [...new Set(allData.map(d => d.date))].sort().reverse().slice(0, 7).reverse();
@@ -294,6 +319,54 @@ export default function DashboardPage() {
 
             {/* Alert Hub - High Level Suggestions */}
             {summary && <AlertHub plants={summary.plants} />}
+
+            {/* Downtime / Stoppage Info Section */}
+            {activeDowntimes.length > 0 && (
+                <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/30">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <Wrench className="h-4 w-4 text-orange-600" />
+                            營運趨勢 - 停機狀態
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="space-y-2">
+                            {activeDowntimes.map(d => {
+                                const numerals = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+                                const furnaceLabel = numerals[d.furnaceNumber] || d.furnaceNumber;
+                                const endDate = new Date(d.endDateTime);
+                                const endDateStr = endDate.toLocaleDateString('zh-TW', {
+                                    month: 'numeric',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                });
+                                return (
+                                    <div key={d.id} className="flex flex-wrap items-center gap-2 text-sm">
+                                        <Badge variant={d.downtimeType === '計畫歲修' ? 'secondary' : 'destructive'} className="gap-1">
+                                            {d.downtimeType === '計畫歲修' ? (
+                                                <Wrench className="h-3 w-3" />
+                                            ) : (
+                                                <AlertTriangle className="h-3 w-3" />
+                                            )}
+                                            {d.downtimeType}
+                                        </Badge>
+                                        <span className="font-medium">{d.plantName}</span>
+                                        <span>{furnaceLabel}號爐</span>
+                                        <span className="text-muted-foreground">→</span>
+                                        <span className="text-orange-700 dark:text-orange-400">
+                                            預計 {endDateStr} 上線
+                                        </span>
+                                        {d.notes && (
+                                            <span className="text-muted-foreground text-xs">({d.notes})</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Top Analysis Section: Metrics + Map */}
             <div className="grid gap-6 grid-cols-1 lg:grid-cols-4">
