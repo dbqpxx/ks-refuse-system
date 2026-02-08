@@ -21,36 +21,31 @@ export default function AlertHub({ plants }: AlertHubProps) {
                     <div
                         key={name}
                         className={`
-                            relative overflow-hidden rounded-lg border p-3 transition-all duration-300
+                            relative overflow-hidden rounded-lg border px-3 py-2 transition-all duration-300
                             ${isAlert
                                 ? 'bg-red-600 border-red-700 text-white shadow-md animate-pulse-slow'
-                                : 'bg-muted/30 border-border text-muted-foreground opacity-70'}
+                                : 'bg-muted/30 border-border text-muted-foreground opacity-60'}
                         `}
                     >
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-0.5">
                             <div className="flex items-center justify-between">
-                                <span className={`text-[10px] font-bold uppercase tracking-wider ${isAlert ? 'text-white/80' : 'text-muted-foreground'}`}>
+                                <span className={`text-[9px] font-bold uppercase tracking-wider ${isAlert ? 'text-white/80' : 'text-muted-foreground'}`}>
                                     {name}
                                 </span>
                                 {isAlert ? (
                                     <AlertTriangle className="h-3 w-3 text-white" />
                                 ) : (
-                                    <CheckCircle2 className="h-3 w-3 text-muted-foreground/50" />
+                                    <CheckCircle2 className="h-3 w-3 text-muted-foreground/30" />
                                 )}
                             </div>
-                            <div className="flex items-baseline gap-1 mt-1">
-                                <span className={`text-lg font-black ${isAlert ? 'text-white' : 'text-foreground'}`}>
+                            <div className="flex items-baseline gap-1">
+                                <span className={`text-base font-black ${isAlert ? 'text-white' : 'text-foreground'}`}>
                                     {pct.toFixed(0)}%
                                 </span>
-                                <span className="text-[10px]">
+                                <span className="text-[9px] opacity-80">
                                     {isAlert ? '飽和' : '正常'}
                                 </span>
                             </div>
-                            {isAlert && (
-                                <div className="mt-2 text-[9px] font-medium leading-tight text-red-50">
-                                    建議減少進廠預約
-                                </div>
-                            )}
                         </div>
                     </div>
                 );
