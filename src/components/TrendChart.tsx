@@ -24,16 +24,24 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
     const predictionSource = allHistoricalData || data;
 
     // Transform data for display (recent days only)
-    const historicalData = data.map(item => ({
-        date: item.date,
-        displayDate: formatDate(item.date),
-        進廠量: item.summary.totalIntake,
-        焚化量: item.summary.totalIncineration,
-        平均貯坑: item.summary.plants.length > 0
+    const historicalData = data.map(item => {
+        const totalCap = item.summary.plants.reduce((sum, p) => sum + (p.pitCapacity || 0), 0);
+        const totalSto = item.summary.plants.reduce((sum, p) => sum + (p.pitStorage || 0), 0);
+        const avgPct = item.summary.plants.length > 0
             ? item.summary.plants.reduce((sum, p) => sum + p.pitStoragePercentage, 0) / item.summary.plants.length
-            : 0,
-        isPrediction: false
-    }));
+            : 0;
+
+        return {
+            date: item.date,
+            displayDate: formatDate(item.date),
+            進廠量: item.summary.totalIntake,
+            焚化量: item.summary.totalIncineration,
+            平均貯坑: avgPct,
+            剩餘容量: Math.max(0, totalCap - totalSto),
+            超載容量: Math.max(0, totalSto - totalCap),
+            isPrediction: false
+        };
+    });
 
     // Use ALL historical data for prediction calculation
     const allIntakePoints = predictionSource.map(item => item.summary.totalIntake);
@@ -223,6 +231,8 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
                 平均貯坑_預測: getPct(accStorageNormal),
                 平均貯坑_預測_多停1爐: getPct(accStoragePlus1),
                 平均貯坑_預測_多停2爐: getPct(accStoragePlus2),
+                剩餘容量_預測: Math.max(0, totalPitCapacity - accStorageNormal),
+                超載容量_預測: Math.max(0, accStorageNormal - totalPitCapacity),
                 isPrediction: true
             });
         }
@@ -236,6 +246,8 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
         lastHistorical.平均貯坑_預測 = lastHistorical.平均貯坑;
         lastHistorical.平均貯坑_預測_多停1爐 = lastHistorical.平均貯坑;
         lastHistorical.平均貯坑_預測_多停2爐 = lastHistorical.平均貯坑;
+        lastHistorical.剩餘容量_預測 = lastHistorical.剩餘容量;
+        lastHistorical.超載容量_預測 = lastHistorical.超載容量;
     }
 
     const chartData = [...historicalData, ...next3Days];
@@ -461,6 +473,99 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
                                 name="平均貯坑 (預測 - 多停2爐)"
                             />
                         </LineChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Capacity (Remaining/Overload) Tonnage Chart */}
+                <div className="h-48 sm:h-56 w-full mt-8 border-t pt-4 px-2 sm:px-0">
+                    <p className="text-xs font-semibold text-muted-foreground mb-3 px-2 sm:px-0 flex items-center gap-1">
+                        <span className="w-1 h-3 bg-emerald-500 rounded-full" />
+                        貯坑剩餘/超載容量趨勢 (噸)
+                    </p>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -25, bottom: 10 }}>
+                            <defs>
+                                <linearGradient id="colorRemaining" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                </linearGradient>
+                                <linearGradient id="colorOverload" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted opacity-50" vertical={false} />
+                            <XAxis
+                                dataKey="displayDate"
+                                tick={{ fontSize: 10 }}
+                                tickLine={false}
+                                axisLine={false}
+                                minTickGap={10}
+                            />
+                            <YAxis
+                                tick={{ fontSize: 10 }}
+                                tickLine={false}
+                                axisLine={false}
+                                tickFormatter={(value) => `${value}`}
+                                width={35}
+                            />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: 'hsl(var(--card))',
+                                    border: '1px solid hsl(var(--border))',
+                                    borderRadius: '8px',
+                                    fontSize: '11px',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                }}
+                                formatter={(value: number | undefined, name?: any) => {
+                                    if (value === undefined) return ['--', name || ''];
+                                    return [`${value.toFixed(0)} 噸`, name || ''];
+                                }}
+                                labelFormatter={(label) => `日期: ${label}`}
+                            />
+                            <Legend
+                                wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }}
+                                iconType="circle"
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="剩餘容量"
+                                stroke="#10b981"
+                                strokeWidth={2}
+                                fill="url(#colorRemaining)"
+                                name="剩餘容量"
+                                dot={false}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="超載容量"
+                                stroke="#ef4444"
+                                strokeWidth={2}
+                                fill="url(#colorOverload)"
+                                name="超載容量"
+                                dot={false}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="剩餘容量_預測"
+                                stroke="#10b981"
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                dot={false}
+                                connectNulls
+                                name="預測剩餘"
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="超載容量_預測"
+                                stroke="#ef4444"
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                dot={false}
+                                connectNulls
+                                name="預測超載"
+                            />
+                        </AreaChart>
                     </ResponsiveContainer>
                 </div>
             </CardContent>
