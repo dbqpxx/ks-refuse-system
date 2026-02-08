@@ -94,23 +94,18 @@ export default function DashboardPage() {
                 plants
             });
 
-            // Fetch downtime records and filter for current date
+            // Fetch downtime records and filter for real-time status
             try {
                 const downtimeRecords = await apiService.fetchDowntimeRecords();
-                // Filter downtimes that overlap with the selected date
-                const selectedDateObj = new Date(dateToLoad);
-                const selectedDayStart = new Date(selectedDateObj);
-                selectedDayStart.setHours(0, 0, 0, 0);
-                const selectedDayEnd = new Date(selectedDateObj);
-                selectedDayEnd.setHours(23, 59, 59, 999);
+                const now = new Date();
 
-                const activeForDate = downtimeRecords.filter(d => {
-                    const start = new Date(d.startDateTime);
+                // Filter downtimes where the expected restart time is in the future
+                const activeNow = downtimeRecords.filter(d => {
                     const end = new Date(d.endDateTime);
-                    // Overlaps if start <= day end AND end >= day start
-                    return start <= selectedDayEnd && end >= selectedDayStart;
+                    // Currently active means it hasn't finished yet
+                    return end > now;
                 });
-                setActiveDowntimes(activeForDate);
+                setActiveDowntimes(activeNow);
             } catch (err) {
                 console.error('Failed to fetch downtime records:', err);
                 setActiveDowntimes([]);
@@ -329,6 +324,7 @@ export default function DashboardPage() {
                         <CardTitle className="text-base flex items-center gap-2">
                             <Wrench className="h-4 w-4 text-orange-600" />
                             營運趨勢 - 停機狀態
+                            <Badge variant="outline" className="ml-auto text-[10px] py-0 h-4 border-orange-300 text-orange-600 bg-orange-100/50">即時</Badge>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
