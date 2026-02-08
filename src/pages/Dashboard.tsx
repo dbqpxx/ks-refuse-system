@@ -76,7 +76,9 @@ export default function DashboardPage() {
                     pitStorage: r.pitStorage,
                     pitCapacity: r.pitCapacity,
                     furnaceCount: r.furnaceCount,
-                    maxFurnaces: plantConfig?.maxFurnaces || 4
+                    maxFurnaces: plantConfig?.maxFurnaces || 4,
+                    platformReserved: r.platformReserved,
+                    actualIntake: r.actualIntake
                 };
             });
 

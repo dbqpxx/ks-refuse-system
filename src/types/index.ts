@@ -63,6 +63,8 @@ export interface PlantSummary {
     pitCapacity: number;
     furnaceCount: number;
     maxFurnaces: number;
+    platformReserved?: number;
+    actualIntake?: number;
 }
 
 // Filter options for querying data

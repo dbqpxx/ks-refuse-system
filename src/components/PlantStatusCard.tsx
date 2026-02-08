@@ -122,7 +122,7 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
 
                 {/* Main Metrics Grid */}
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background/80 rounded-lg p-3 shadow-sm">
+                    <div className="bg-background/80 rounded-lg p-3 shadow-sm border border-border/50">
                         <div className="flex items-center gap-1 text-muted-foreground mb-1">
                             <TrendingUp className="h-3 w-3" />
                             <span className="text-xs">進廠量</span>
@@ -132,7 +132,7 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
                             <span className="text-xs font-normal text-muted-foreground ml-1">噸</span>
                         </p>
                     </div>
-                    <div className="bg-background/80 rounded-lg p-3 shadow-sm">
+                    <div className="bg-background/80 rounded-lg p-3 shadow-sm border border-border/50">
                         <div className="flex items-center gap-1 text-muted-foreground mb-1">
                             <Flame className="h-3 w-3" />
                             <span className="text-xs">焚化量</span>
@@ -141,6 +141,24 @@ export default function PlantStatusCard({ plant }: PlantStatusCardProps) {
                             {incinerationAmount.toLocaleString()}
                             <span className="text-xs font-normal text-muted-foreground ml-1">噸</span>
                         </p>
+                    </div>
+                </div>
+
+                {/* Detailed Intake Info */}
+                <div className="bg-muted/30 rounded-lg p-2 space-y-1 text-[10px] sm:text-xs">
+                    <div className="flex justify-between items-center px-1">
+                        <span className="text-muted-foreground">平台預約</span>
+                        <span className="font-semibold">{plant.platformReserved?.toLocaleString() || '--'} 噸</span>
+                    </div>
+                    <div className="flex justify-between items-center px-1">
+                        <span className="text-muted-foreground">事業進廠</span>
+                        <span className="font-semibold">{plant.actualIntake?.toLocaleString() || '--'} 噸</span>
+                    </div>
+                    <div className="flex justify-between items-center px-1">
+                        <span className="text-muted-foreground">家戶垃圾</span>
+                        <span className="font-semibold">
+                            {plant.actualIntake !== undefined ? (totalIntake - plant.actualIntake).toLocaleString() : '--'} 噸
+                        </span>
                     </div>
                 </div>
 
