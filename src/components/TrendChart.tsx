@@ -83,7 +83,7 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
 
         // Capacity-based incineration prediction using actual historical data
         // Uses cumulative average until 7 days, then 7-day moving average
-        const predictIncineration = (incinerationPoints: number[], steps: number): number => {
+        const predictIncineration = (incinerationPoints: number[], steps: number, additionalStopped: number = 0): number => {
             const n = incinerationPoints.length;
             if (n < 1) return 0; // No data available
 
@@ -112,7 +112,9 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
             const availableFurnaces = getAvailableFurnaces(targetDate);
 
             // Prediction = available furnaces × per-furnace capacity
-            return Math.max(0, availableFurnaces * perFurnaceCapacity);
+            // Apply additional stopped furnaces for scenario analysis
+            const effectiveFurnaces = Math.max(0, availableFurnaces - additionalStopped);
+            return Math.max(0, effectiveFurnaces * perFurnaceCapacity);
         };
 
         // Day-of-Week Aware Prediction with Trend Adjustment
@@ -183,33 +185,44 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
         const totalPitCapacity = lastHistoricalData.summary.plants.reduce((sum, p) => sum + (p.pitCapacity || 0), 0);
         const currentPitStorage = totalPitCapacity * (currentAvgPitPct / 100);
 
-        // Track accumulated storage for each prediction day
-        let accumulatedStorage = currentPitStorage;
+        // Track accumulated storage for each scenario
+        let accStorageNormal = currentPitStorage;
+        let accStoragePlus1 = currentPitStorage;
+        let accStoragePlus2 = currentPitStorage;
 
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 5; i++) {
             const nextDate = new Date(lastDate);
             nextDate.setDate(lastDate.getDate() + i);
             const dateStr = nextDate.toISOString().split('T')[0];
 
-            // Predict intake and incineration for this day
+            // Predict intake (same for all scenarios)
             const predictedIntake = predict(allIntakePoints, i);
-            const predictedIncineration = predictIncineration(allIncinerationPoints, i);
 
-            // Material balance: daily change = intake - incineration
-            const dailyChange = predictedIntake - predictedIncineration;
-            accumulatedStorage += dailyChange;
+            // Predict incineration for 3 scenarios
+            const predIncNormal = predictIncineration(allIncinerationPoints, i, 0);
+            const predIncPlus1 = predictIncineration(allIncinerationPoints, i, 1);
+            const predIncPlus2 = predictIncineration(allIncinerationPoints, i, 2);
 
-            // Convert to percentage (with safety bounds 0-150%)
-            const predictedPitPct = totalPitCapacity > 0
-                ? Math.max(0, Math.min(150, (accumulatedStorage / totalPitCapacity) * 100))
+            // Update pit storage for 3 scenarios
+            accStorageNormal += (predictedIntake - predIncNormal);
+            accStoragePlus1 += (predictedIntake - predIncPlus1);
+            accStoragePlus2 += (predictedIntake - predIncPlus2);
+
+            // Convert to percentages
+            const getPct = (storage: number) => totalPitCapacity > 0
+                ? Math.max(0, Math.min(150, (storage / totalPitCapacity) * 100))
                 : currentAvgPitPct;
 
             next3Days.push({
                 date: dateStr,
                 displayDate: formatDate(dateStr) + ' (預測)',
                 進廠量_預測: predictedIntake,
-                焚化量_預測: predictedIncineration,
-                平均貯坑_預測: predictedPitPct,
+                焚化量_預測: predIncNormal,
+                焚化量_預測_多停1爐: predIncPlus1,
+                焚化量_預測_多停2爐: predIncPlus2,
+                平均貯坑_預測: getPct(accStorageNormal),
+                平均貯坑_預測_多停1爐: getPct(accStoragePlus1),
+                平均貯坑_預測_多停2爐: getPct(accStoragePlus2),
                 isPrediction: true
             });
         }
@@ -218,7 +231,11 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
         const lastHistorical = historicalData[historicalData.length - 1] as any;
         lastHistorical.進廠量_預測 = lastHistorical.進廠量;
         lastHistorical.焚化量_預測 = lastHistorical.焚化量;
+        lastHistorical.焚化量_預測_多停1爐 = lastHistorical.焚化量;
+        lastHistorical.焚化量_預測_多停2爐 = lastHistorical.焚化量;
         lastHistorical.平均貯坑_預測 = lastHistorical.平均貯坑;
+        lastHistorical.平均貯坑_預測_多停1爐 = lastHistorical.平均貯坑;
+        lastHistorical.平均貯坑_預測_多停2爐 = lastHistorical.平均貯坑;
     }
 
     const chartData = [...historicalData, ...next3Days];
@@ -286,7 +303,10 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
                                     fontSize: '11px',
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                                 }}
-                                formatter={(value: number | undefined) => [value !== undefined ? `${value.toFixed(0)} 噸` : '--']}
+                                formatter={(value: number | undefined, name?: any) => {
+                                    if (value === undefined) return ['--', name || ''];
+                                    return [`${value.toFixed(0)} 噸`, name || ''];
+                                }}
                                 labelFormatter={(label) => `日期: ${label}`}
                             />
                             <Legend
@@ -336,6 +356,26 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
                                 connectNulls
                                 name="焚化量 (預測)"
                             />
+                            <Line
+                                type="monotone"
+                                dataKey="焚化量_預測_多停1爐"
+                                stroke="#fca5a5"
+                                strokeWidth={1.5}
+                                strokeDasharray="5 5"
+                                dot={false}
+                                connectNulls
+                                name="焚化量 (預測 - 多停1爐)"
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="焚化量_預測_多停2爐"
+                                stroke="#b91c1c"
+                                strokeWidth={1.5}
+                                strokeDasharray="3 3"
+                                dot={false}
+                                connectNulls
+                                name="焚化量 (預測 - 多停2爐)"
+                            />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
@@ -372,7 +412,11 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
                                     fontSize: '11px',
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                                 }}
-                                formatter={(value: number | undefined) => [value !== undefined ? `${value.toFixed(1)}%` : '--', '平均貯坑佔比']}
+                                formatter={(value: number | undefined, name?: any) => {
+                                    if (value === undefined) return ['--', name || ''];
+                                    const safeName = (name || '') === '平均貯坑' ? '平均貯坑佔比' : (name || '');
+                                    return [`${value.toFixed(1)}%`, safeName];
+                                }}
                                 labelFormatter={(label) => `日期: ${label}`}
                             />
                             <Line
@@ -395,6 +439,26 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
                                 activeDot={{ r: 4 }}
                                 connectNulls
                                 name="平均貯坑 (預測)"
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="平均貯坑_預測_多停1爐"
+                                stroke="#fdba74"
+                                strokeWidth={1.5}
+                                strokeDasharray="5 5"
+                                dot={false}
+                                connectNulls
+                                name="平均貯坑 (預測 - 多停1爐)"
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="平均貯坑_預測_多停2爐"
+                                stroke="#c2410c"
+                                strokeWidth={1.5}
+                                strokeDasharray="3 3"
+                                dot={false}
+                                connectNulls
+                                name="平均貯坑 (預測 - 多停2爐)"
                             />
                         </LineChart>
                     </ResponsiveContainer>
