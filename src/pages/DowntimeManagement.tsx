@@ -181,30 +181,22 @@ export default function DowntimeManagementPage() {
         });
     };
 
-    // Status logic: use end of today as reference for prediction purposes
-    // (since today's data is being predicted, stoppage affects today's capacity)
-    const getStatusReferenceDate = () => {
-        const today = new Date();
-        today.setHours(23, 59, 59, 999);
-        return today;
-    };
+    // Status logic: use current time to determine if a stoppage is active
+
 
     const isActive = (record: DowntimeRecord) => {
-        const refDate = getStatusReferenceDate();
+        const now = new Date();
         const start = new Date(record.startDateTime);
         const end = new Date(record.endDateTime);
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-        // Active if start <= today's end AND end >= today's start (overlaps with today)
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        return start <= refDate && end >= todayStart;
+        return now >= start && now <= end;
     };
 
     const isFuture = (record: DowntimeRecord) => {
-        const todayEnd = getStatusReferenceDate();
+        const now = new Date();
         const start = new Date(record.startDateTime);
         if (isNaN(start.getTime())) return false;
-        return start > todayEnd;
+        return start > now;
     };
 
     if (loading) {

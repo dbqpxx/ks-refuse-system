@@ -576,7 +576,9 @@ export default function TrendChart({ data, allHistoricalData, activeDowntimes = 
 function formatDate(dateStr: string): string {
     try {
         const date = new Date(dateStr);
-        return `${date.getMonth() + 1}/${date.getDate()}`;
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayName = days[date.getDay()];
+        return `${date.getMonth() + 1}/${date.getDate()} (${dayName})`;
     } catch {
         return dateStr;
     }
