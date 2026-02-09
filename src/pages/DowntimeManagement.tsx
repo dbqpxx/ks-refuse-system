@@ -177,8 +177,7 @@ export default function DowntimeManagementPage() {
             month: '2-digit',
             day: '2-digit',
             hour: '2-digit',
-            minute: '2-digit',
-        });
+        }) + ':00';
     };
 
     // Status logic: use current time to determine if a stoppage is active
