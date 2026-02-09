@@ -90,8 +90,7 @@ export default function DowntimeManagementPage() {
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
             const hours = String(d.getHours()).padStart(2, '0');
-            const mins = String(d.getMinutes()).padStart(2, '0');
-            return `${year}-${month}-${day}T${hours}:${mins}`;
+            return `${year}-${month}-${day}T${hours}:00`;
         };
 
         setFormData({
@@ -104,12 +103,25 @@ export default function DowntimeManagementPage() {
 
     const openEditDialog = (record: DowntimeRecord) => {
         setEditingRecord(record);
+
+        // Ensure we handle ISO strings correctly for datetime-local (YYYY-MM-DDTHH:00)
+        // We use local time for the input
+        const formatForInput = (iso: string) => {
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return '';
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:00`;
+        };
+
         setFormData({
             plantName: record.plantName,
             furnaceNumber: record.furnaceNumber,
             downtimeType: record.downtimeType,
-            startDateTime: record.startDateTime.slice(0, 16), // Format for datetime-local input
-            endDateTime: record.endDateTime.slice(0, 16),
+            startDateTime: formatForInput(record.startDateTime),
+            endDateTime: formatForInput(record.endDateTime),
             notes: record.notes || '',
         });
         setIsDialogOpen(true);
