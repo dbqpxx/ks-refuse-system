@@ -10,6 +10,14 @@ import PlantStatusCard from '@/components/PlantStatusCard';
 import TrendChart from '@/components/TrendChart';
 import AlertHub from '@/components/AlertHub';
 import PlantMap from '@/components/PlantMap';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiService } from '@/services/api';
 import { PLANTS, type DailySummary, type DowntimeRecord } from '@/types';
 
@@ -33,7 +41,10 @@ export default function DashboardPage() {
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
-    const [activeDowntimes, setActiveDowntimes] = useState<DowntimeRecord[]>([]);
+    const [currentActiveDowntimes, setCurrentActiveDowntimes] = useState<DowntimeRecord[]>([]);
+    const [allYearDowntimes, setAllYearDowntimes] = useState<DowntimeRecord[]>([]);
+    const [allDowntimeRecords, setAllDowntimeRecords] = useState<DowntimeRecord[]>([]);
+    const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
     useEffect(() => {
         loadDashboardData();
@@ -98,17 +109,29 @@ export default function DashboardPage() {
             try {
                 const downtimeRecords = await apiService.fetchDowntimeRecords();
                 const now = new Date();
+                const currentYear = now.getFullYear();
 
-                // Filter downtimes where the expected restart time is in the future
+                // 1. Current Active: Only those happening RIGHT NOW (start <= now <= end)
                 const activeNow = downtimeRecords.filter(d => {
+                    const start = new Date(d.startDateTime);
                     const end = new Date(d.endDateTime);
-                    // Currently active means it hasn't finished yet
-                    return end > now;
+                    return now >= start && now <= end;
                 });
-                setActiveDowntimes(activeNow);
+
+                // 2. All Year: Records from the current calendar year
+                const yearRecords = downtimeRecords.filter(d => {
+                    const start = new Date(d.startDateTime);
+                    return start.getFullYear() === currentYear;
+                }).sort((a, b) => new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime());
+
+                setCurrentActiveDowntimes(activeNow);
+                setAllYearDowntimes(yearRecords);
+                setAllDowntimeRecords(downtimeRecords);
             } catch (err) {
                 console.error('Failed to fetch downtime records:', err);
-                setActiveDowntimes([]);
+                setCurrentActiveDowntimes([]);
+                setAllYearDowntimes([]);
+                setAllDowntimeRecords([]);
             }
 
             // Trend Data (Last 7 days)
@@ -318,18 +341,29 @@ export default function DashboardPage() {
             {summary && <AlertHub plants={summary.plants} />}
 
             {/* Downtime / Stoppage Info Section */}
-            {activeDowntimes.length > 0 && (
-                <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/30">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <Wrench className="h-4 w-4 text-orange-600" />
-                            營運趨勢 - 停機狀態
-                            <Badge variant="outline" className="ml-auto text-[10px] py-0 h-4 border-orange-300 text-orange-600 bg-orange-100/50">即時</Badge>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
+            <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/30">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                        <Wrench className="h-4 w-4 text-orange-600" />
+                        營運趨勢 - 停機狀況
+                        <Badge variant="outline" className="ml-auto text-[10px] py-0 h-4 border-orange-300 text-orange-600 bg-orange-100/50">
+                            {currentActiveDowntimes.length > 0 ? '即時進行中' : '目前無停機'}
+                        </Badge>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs gap-1 text-orange-700 hover:text-orange-800 hover:bg-orange-100"
+                            onClick={() => setIsDetailDialogOpen(true)}
+                        >
+                            <Calendar className="h-3 w-3" />
+                            停機詳細資料
+                        </Button>
+                    </CardTitle>
+                </CardHeader>
+                {currentActiveDowntimes.length > 0 && (
+                    <CardContent className="pt-0 pb-3">
                         <div className="space-y-2">
-                            {activeDowntimes.map(d => {
+                            {currentActiveDowntimes.map(d => {
                                 const numerals = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
                                 const furnaceLabel = numerals[d.furnaceNumber] || d.furnaceNumber;
                                 const endDate = new Date(d.endDateTime);
@@ -341,30 +375,86 @@ export default function DashboardPage() {
                                 });
                                 return (
                                     <div key={d.id} className="flex flex-wrap items-center gap-2 text-sm">
-                                        <Badge variant={d.downtimeType === '計畫歲修' ? 'secondary' : 'destructive'} className="gap-1">
+                                        <Badge variant={d.downtimeType === '計畫歲修' ? 'secondary' : 'destructive'} className="gap-1 py-0 px-2 h-5 text-[10px]">
                                             {d.downtimeType === '計畫歲修' ? (
-                                                <Wrench className="h-3 w-3" />
+                                                <Wrench className="h-2.5 w-2.5" />
                                             ) : (
-                                                <AlertTriangle className="h-3 w-3" />
+                                                <AlertTriangle className="h-2.5 w-2.5" />
                                             )}
                                             {d.downtimeType}
                                         </Badge>
-                                        <span className="font-medium">{d.plantName}</span>
-                                        <span>{furnaceLabel}號爐</span>
-                                        <span className="text-muted-foreground">→</span>
-                                        <span className="text-orange-700 dark:text-orange-400">
+                                        <span className="font-bold text-orange-900 dark:text-orange-100">{d.plantName}</span>
+                                        <span className="text-orange-800 dark:text-orange-200">{furnaceLabel}號爐</span>
+                                        <span className="text-orange-400 dark:text-orange-600">→</span>
+                                        <span className="text-orange-700 dark:text-orange-400 font-medium">
                                             預計 {endDateStr} 上線
                                         </span>
                                         {d.notes && (
-                                            <span className="text-muted-foreground text-xs">({d.notes})</span>
+                                            <span className="text-muted-foreground text-xs italic">({d.notes})</span>
                                         )}
                                     </div>
                                 );
                             })}
                         </div>
                     </CardContent>
-                </Card>
-            )}
+                )}
+            </Card>
+
+            {/* Downtime Detail Modal */}
+            <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>當年度停機紀錄明細 ({new Date().getFullYear()}年)</DialogTitle>
+                        <DialogDescription>
+                            下方列出本年度所有已登記的歲修與臨時停機紀錄
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>廠區</TableHead>
+                                    <TableHead>爐號</TableHead>
+                                    <TableHead>類型</TableHead>
+                                    <TableHead>開始時間</TableHead>
+                                    <TableHead>結束時間</TableHead>
+                                    <TableHead>備註</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {allYearDowntimes.map((d) => {
+                                    const numerals = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+                                    const start = new Date(d.startDateTime).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                                    const end = new Date(d.endDateTime).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                                    return (
+                                        <TableRow key={d.id}>
+                                            <TableCell className="font-medium">{d.plantName}</TableCell>
+                                            <TableCell>{numerals[d.furnaceNumber] || d.furnaceNumber}號爐</TableCell>
+                                            <TableCell>
+                                                <Badge variant={d.downtimeType === '計畫歲修' ? 'secondary' : 'destructive'} className="text-[10px]">
+                                                    {d.downtimeType}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-xs">{start}</TableCell>
+                                            <TableCell className="text-xs">{end}</TableCell>
+                                            <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate" title={d.notes || ''}>
+                                                {d.notes || '-'}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                                {allYearDowntimes.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                            本年度尚無停機紀錄
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Top Analysis Section: Metrics + Map */}
             <div className="grid gap-6 grid-cols-1 lg:grid-cols-4">
@@ -462,7 +552,7 @@ export default function DashboardPage() {
 
             {/* Trend Chart - Full Width */}
             {trendData.length > 1 && (
-                <TrendChart data={trendData} allHistoricalData={allTrendData} activeDowntimes={activeDowntimes} />
+                <TrendChart data={trendData} allHistoricalData={allTrendData} activeDowntimes={allDowntimeRecords} />
             )}
 
             {/* Pit Storage Overview */}
