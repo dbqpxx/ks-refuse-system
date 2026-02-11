@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import MetricCard from '@/components/MetricCard';
-import PitStorageChart from '@/components/PitStorageChart';
+
 import PlantStatusCard from '@/components/PlantStatusCard';
 import TrendChart from '@/components/TrendChart';
 import AlertHub from '@/components/AlertHub';
@@ -555,10 +555,7 @@ export default function DashboardPage() {
                 <TrendChart data={trendData} allHistoricalData={allTrendData} activeDowntimes={allDowntimeRecords} />
             )}
 
-            {/* Pit Storage Overview */}
-            {summary && summary.plants.length > 0 && (
-                <PitStorageChart plants={summary.plants} />
-            )}
+
 
             {/* Plant Status Cards */}
             {summary && summary.plants.length > 0 && (
