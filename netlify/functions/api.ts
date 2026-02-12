@@ -82,6 +82,9 @@ export const handler: Handler = async (event, context) => {
             ],
             'Downtime': [
                 'id', 'plantName', 'furnaceNumber', 'downtimeType', 'startDateTime', 'endDateTime', 'notes', 'createdAt', 'updatedAt'
+            ],
+            'DailyComments': [
+                'id', 'date', 'content', 'imageUrl', 'createdAt', 'updatedAt'
             ]
         };
 
