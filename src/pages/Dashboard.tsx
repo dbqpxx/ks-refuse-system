@@ -51,10 +51,15 @@ export default function DashboardPage() {
         loadDashboardData();
     }, [selectedDate]);
 
-    const loadDashboardData = async () => {
+    const loadDashboardData = async (forceRefresh = false) => {
         setLoading(true);
         try {
-            const allData = await apiService.fetchPlantData();
+            // Parallel Fetching
+            const [allData, downtimeRecords, comments] = await Promise.all([
+                apiService.fetchPlantData(forceRefresh),
+                apiService.fetchDowntimeRecords(forceRefresh),
+                apiService.fetchDailyComments(forceRefresh)
+            ]);
 
             if (allData.length === 0) {
                 setLoading(false);
@@ -106,9 +111,8 @@ export default function DashboardPage() {
                 plants
             });
 
-            // Fetch downtime records and filter for real-time status
+            // Process Downtime Records
             try {
-                const downtimeRecords = await apiService.fetchDowntimeRecords();
                 const now = new Date();
                 const currentYear = now.getFullYear();
 
@@ -129,20 +133,19 @@ export default function DashboardPage() {
                 setAllYearDowntimes(yearRecords);
                 setAllDowntimeRecords(downtimeRecords);
             } catch (err) {
-                console.error('Failed to fetch downtime records:', err);
+                console.error('Failed to process downtime records:', err);
                 setCurrentActiveDowntimes([]);
                 setAllYearDowntimes([]);
                 setAllDowntimeRecords([]);
             }
 
-            // Fetch Daily Comment
+            // Process Daily Comment
             try {
-                const comments = await apiService.fetchDailyComments();
                 const targetDate = dateToLoad;
                 const comment = comments.find(c => c.date === targetDate);
                 setDailyComment(comment || null);
             } catch (err) {
-                console.error('Failed to fetch daily comment:', err);
+                console.error('Failed to process daily comment:', err);
                 setDailyComment(null);
             }
 
@@ -293,7 +296,7 @@ export default function DashboardPage() {
     };
 
     const handleRefresh = () => {
-        loadDashboardData();
+        loadDashboardData(true);
     };
 
 
