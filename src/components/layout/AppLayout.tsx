@@ -127,8 +127,8 @@ export default function AppLayout() {
 
             {/* Mobile Bottom Navigation - Fixed */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t shadow-lg">
-                <nav className="flex items-center justify-around p-2 max-w-screen">
-                    {filteredNavItems.slice(0, 5).map((item) => {
+                <nav className="flex items-center gap-1 p-2 overflow-x-auto w-full no-scrollbar">
+                    {filteredNavItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = location.pathname === item.href;
                         return (
@@ -136,14 +136,14 @@ export default function AppLayout() {
                                 key={item.href}
                                 to={item.href}
                                 className={cn(
-                                    "flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[10px] font-medium rounded-lg transition-all min-w-[52px]",
+                                    "flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[10px] font-medium rounded-lg transition-all min-w-[64px] shrink-0",
                                     isActive
                                         ? "bg-primary/15 text-primary scale-105"
                                         : "text-muted-foreground active:scale-95"
                                 )}
                             >
                                 <Icon className={cn("h-5 w-5 transition-transform", isActive && "scale-110")} />
-                                <span className="truncate">{item.label}</span>
+                                <span className="truncate w-full text-center">{item.label}</span>
                             </Link>
                         );
                     })}

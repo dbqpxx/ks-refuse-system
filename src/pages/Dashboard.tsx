@@ -358,8 +358,9 @@ export default function DashboardPage() {
                     <CardTitle className="text-base flex items-center gap-2">
                         <Wrench className="h-4 w-4 text-orange-600" />
                         營運趨勢 - 停機狀況
-                        <Badge variant="outline" className="ml-auto text-[10px] py-0 h-4 border-orange-300 text-orange-600 bg-orange-100/50">
-                            {currentActiveDowntimes.length > 0 ? '即時進行中' : '目前無停機'}
+                        <Badge variant="outline" className="ml-auto text-[10px] py-0 h-4 border-orange-300 text-orange-600 bg-orange-100/50 whitespace-nowrap">
+                            <span className="hidden sm:inline">{currentActiveDowntimes.length > 0 ? '即時進行中' : '目前無停機'}</span>
+                            <span className="sm:hidden">{currentActiveDowntimes.length > 0 ? '進行中' : '無紀錄'}</span>
                         </Badge>
                         <Button
                             variant="ghost"
