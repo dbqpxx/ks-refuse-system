@@ -1,4 +1,4 @@
-import type { PlantData, User, DowntimeRecord } from '@/types';
+import type { PlantData, User, DowntimeRecord, DailyComment } from '@/types';
 
 // Use relative URL which will be proxied by Netlify (dev and prod)
 const API_URL = '/api';
@@ -153,5 +153,51 @@ export const apiService = {
             body: JSON.stringify({ id }),
         });
         if (!response.ok) throw new Error('Failed to delete downtime record');
+    },
+
+    // --- Daily Comments ---
+
+    async fetchDailyComments(): Promise<DailyComment[]> {
+        const response = await fetch(`${API_URL}?sheet=DailyComments`);
+        if (!response.ok) throw new Error('Failed to fetch daily comments');
+        const json = await response.json();
+        return (json.data || []).map((item: any) => ({
+            ...item,
+            // Ensure no legacy fields break the UI
+        }));
+    },
+
+    async saveDailyComment(data: Omit<DailyComment, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+        const payload: DailyComment = {
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            ...data,
+        };
+
+        const response = await fetch(`${API_URL}?sheet=DailyComments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (!response.ok) throw new Error('Failed to save daily comment');
+    },
+
+    async updateDailyComment(data: DailyComment): Promise<void> {
+        const response = await fetch(`${API_URL}?sheet=DailyComments&method=PUT`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...data, updatedAt: new Date().toISOString() }),
+        });
+        if (!response.ok) throw new Error('Failed to update daily comment');
+    },
+
+    async deleteDailyComment(id: string): Promise<void> {
+        const response = await fetch(`${API_URL}?sheet=DailyComments&method=DELETE`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id }),
+        });
+        if (!response.ok) throw new Error('Failed to delete daily comment');
     }
 };

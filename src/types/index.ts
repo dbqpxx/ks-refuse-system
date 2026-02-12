@@ -113,3 +113,13 @@ export interface DowntimeRecord {
     createdAt: string;
     updatedAt: string;
 }
+
+// Daily AI Short Comment
+export interface DailyComment {
+    id: string;
+    date: string; // ISO date string (YYYY-MM-DD)
+    content: string; // The comment text
+    imageUrl?: string; // Optional image URL
+    createdAt: string;
+    updatedAt: string;
+}

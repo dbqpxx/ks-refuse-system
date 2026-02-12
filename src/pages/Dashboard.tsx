@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Flame, TrendingUp, Gauge, Factory, Calendar, RefreshCw, Wrench, AlertTriangle } from 'lucide-react';
+import { Flame, TrendingUp, Gauge, Factory, Calendar, RefreshCw, Wrench, AlertTriangle, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiService } from '@/services/api';
-import { PLANTS, type DailySummary, type DowntimeRecord } from '@/types';
+import { PLANTS, type DailySummary, type DowntimeRecord, type DailyComment } from '@/types';
 
 export default function DashboardPage() {
     const [summary, setSummary] = useState<DailySummary | null>(null);
@@ -45,6 +45,7 @@ export default function DashboardPage() {
     const [allYearDowntimes, setAllYearDowntimes] = useState<DowntimeRecord[]>([]);
     const [allDowntimeRecords, setAllDowntimeRecords] = useState<DowntimeRecord[]>([]);
     const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+    const [dailyComment, setDailyComment] = useState<DailyComment | null>(null);
 
     useEffect(() => {
         loadDashboardData();
@@ -132,6 +133,17 @@ export default function DashboardPage() {
                 setCurrentActiveDowntimes([]);
                 setAllYearDowntimes([]);
                 setAllDowntimeRecords([]);
+            }
+
+            // Fetch Daily Comment
+            try {
+                const comments = await apiService.fetchDailyComments();
+                const targetDate = dateToLoad;
+                const comment = comments.find(c => c.date === targetDate);
+                setDailyComment(comment || null);
+            } catch (err) {
+                console.error('Failed to fetch daily comment:', err);
+                setDailyComment(null);
             }
 
             // Trend Data (Last 7 days)
@@ -399,6 +411,34 @@ export default function DashboardPage() {
                     </CardContent>
                 )}
             </Card>
+
+            {/* AI Daily Summary Section */}
+            {dailyComment && (
+                <Card className="border-indigo-200 bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950/30">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <MessageSquare className="h-4 w-4 text-indigo-600" />
+                            AI 營運短評
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            {dailyComment.imageUrl && (
+                                <div className="sm:w-1/4 max-w-[200px] shrink-0">
+                                    <img
+                                        src={dailyComment.imageUrl}
+                                        alt="Operational Summary"
+                                        className="w-full h-auto rounded-md border border-indigo-200 object-cover"
+                                    />
+                                </div>
+                            )}
+                            <div className="text-sm text-indigo-900 dark:text-indigo-100 whitespace-pre-wrap flex-1">
+                                {dailyComment.content}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Downtime Detail Modal */}
             <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>

@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Search, AlertCircle, Edit, Save, Loader2, Download } from 'lucide-react';
+import { Trash2, Search, AlertCircle, Edit, Save, Loader2, Download, MessageSquare, Plus, Image as ImageIcon } from 'lucide-react';
 import { apiService } from '@/services/api';
-import { PLANTS, type PlantData, type PlantName } from '@/types';
+import { PLANTS, type PlantData, type PlantName, type DailyComment } from '@/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -22,6 +22,15 @@ export default function DataManagementPage() {
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
+    // Daily Comment State
+    const [dailyComments, setDailyComments] = useState<DailyComment[]>([]);
+    const [commentDate, setCommentDate] = useState(new Date().toISOString().split('T')[0]);
+    const [commentContent, setCommentContent] = useState('');
+    const [commentImageUrl, setCommentImageUrl] = useState('');
+    const [isCommentLoading, setIsCommentLoading] = useState(false);
+    const [editingComment, setEditingComment] = useState<DailyComment | null>(null);
+    const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
+
     useEffect(() => {
         loadData();
     }, []);
@@ -34,6 +43,9 @@ export default function DataManagementPage() {
         try {
             const allData = await apiService.fetchPlantData();
             setData(allData);
+
+            const comments = await apiService.fetchDailyComments();
+            setDailyComments(comments);
         } catch (error) {
             console.error("Failed to load data", error);
         }
@@ -132,6 +144,88 @@ export default function DataManagementPage() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const handleSaveComment = async () => {
+        if (!commentDate || !commentContent) {
+            alert("請填寫日期與內容");
+            return;
+        }
+
+        setIsCommentLoading(true);
+        try {
+            if (editingComment) {
+                await apiService.updateDailyComment({
+                    ...editingComment,
+                    date: commentDate,
+                    content: commentContent,
+                    imageUrl: commentImageUrl
+                });
+            } else {
+                // Check if comment exists for this date
+                const existing = dailyComments.find(c => c.date === commentDate);
+                if (existing) {
+                    if (confirm(`日期 ${commentDate} 已有短評，是否覆蓋？`)) {
+                        await apiService.updateDailyComment({
+                            ...existing,
+                            content: commentContent,
+                            imageUrl: commentImageUrl
+                        });
+                    }
+                } else {
+                    await apiService.saveDailyComment({
+                        date: commentDate,
+                        content: commentContent,
+                        imageUrl: commentImageUrl
+                    });
+                }
+            }
+
+            // Refresh
+            const comments = await apiService.fetchDailyComments();
+            setDailyComments(comments);
+
+            // Reset
+            setEditingComment(null);
+            setCommentContent('');
+            setCommentImageUrl('');
+            setIsCommentDialogOpen(false);
+        } catch (error) {
+            console.error("Failed to save comment", error);
+            alert("儲存失敗");
+        } finally {
+            setIsCommentLoading(false);
+        }
+    };
+
+    const handleDeleteComment = async (id: string) => {
+        if (!confirm("確定要刪除此短評？")) return;
+        setIsCommentLoading(true);
+        try {
+            await apiService.deleteDailyComment(id);
+            const comments = await apiService.fetchDailyComments();
+            setDailyComments(comments);
+        } catch (error) {
+            console.error("Failed to delete comment", error);
+            alert("刪除失敗");
+        } finally {
+            setIsCommentLoading(false);
+        }
+    };
+
+    const openCommentDialog = (comment?: DailyComment) => {
+        if (comment) {
+            setEditingComment(comment);
+            setCommentDate(comment.date);
+            setCommentContent(comment.content);
+            setCommentImageUrl(comment.imageUrl || '');
+        } else {
+            setEditingComment(null);
+            setCommentDate(new Date().toISOString().split('T')[0]);
+            setCommentContent('');
+            setCommentImageUrl('');
+        }
+        setIsCommentDialogOpen(true);
     };
 
     return (
@@ -245,6 +339,140 @@ export default function DataManagementPage() {
                     </Dialog>
                 </div>
             </div>
+
+
+            {/* AI Short Comment Section */}
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="text-xl flex items-center gap-2">
+                            <MessageSquare className="h-5 w-5 text-indigo-600" />
+                            AI 營運短評管理
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            管理每日顯示於儀表板的營運短評與圖片
+                        </p>
+                    </div>
+                    <Button onClick={() => openCommentDialog()}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        新增短評
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[120px]">日期</TableHead>
+                                    <TableHead>內容摘要</TableHead>
+                                    <TableHead className="w-[100px]">圖片</TableHead>
+                                    <TableHead className="w-[100px] text-right">操作</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {dailyComments.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                            尚無短評資料
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    dailyComments.sort((a, b) => b.date.localeCompare(a.date)).map((comment) => (
+                                        <TableRow key={comment.id}>
+                                            <TableCell className="font-medium">{comment.date}</TableCell>
+                                            <TableCell className="max-w-[300px] truncate" title={comment.content}>
+                                                {comment.content}
+                                            </TableCell>
+                                            <TableCell>
+                                                {comment.imageUrl ? (
+                                                    <ImageIcon className="h-4 w-4 text-blue-500" />
+                                                ) : (
+                                                    <span className="text-muted-foreground text-xs">-</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="ghost" size="icon" onClick={() => openCommentDialog(comment)}>
+                                                        <Edit className="h-4 w-4 text-blue-500" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteComment(comment.id)}>
+                                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Comment Edit Dialog */}
+            <Dialog open={isCommentDialogOpen} onOpenChange={setIsCommentDialogOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>{editingComment ? '編輯短評' : '新增短評'}</DialogTitle>
+                        <DialogDescription>
+                            輸入當日營運重點摘要，將顯示於儀表板首頁。
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="c-date" className="text-right">
+                                日期
+                            </Label>
+                            <Input
+                                id="c-date"
+                                type="date"
+                                value={commentDate}
+                                onChange={(e) => setCommentDate(e.target.value)}
+                                className="col-span-3"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="c-content" className="text-right">
+                                短評內容
+                            </Label>
+                            <textarea
+                                id="c-content"
+                                className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 col-span-3"
+                                value={commentContent}
+                                onChange={(e) => setCommentContent(e.target.value)}
+                                placeholder="請輸入今日營運重點..."
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="c-image" className="text-right">
+                                圖片連結
+                            </Label>
+                            <Input
+                                id="c-image"
+                                value={commentImageUrl}
+                                onChange={(e) => setCommentImageUrl(e.target.value)}
+                                placeholder="https://..."
+                                className="col-span-3"
+                            />
+                        </div>
+                        {commentImageUrl && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <div className="col-start-2 col-span-3">
+                                    <img src={commentImageUrl} alt="Preview" className="max-h-32 rounded-md object-cover border"
+                                        onError={(e) => (e.currentTarget.style.display = 'none')} />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCommentDialogOpen(false)}>取消</Button>
+                        <Button onClick={handleSaveComment} disabled={isCommentLoading}>
+                            {isCommentLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            儲存
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Card>
                 <CardHeader>
@@ -369,6 +597,6 @@ export default function DataManagementPage() {
             <div className="text-sm text-muted-foreground text-right">
                 顯示 {filteredData.length} 筆資料 (共 {data.length} 筆)
             </div>
-        </div>
+        </div >
     );
 }
